@@ -22,7 +22,7 @@ def calc_pyramid(image, max_layer=3, downscale=2):
 def calc_pyramid_residuals(pyramid):
     """
     First layer in pyramid is original image. Calculate residuals between
-    filtered downsampled images subsequently rescaled and the original. 
+    filtered downsampled images subsequently rescaled and the original.
     """
     residuals = []
     for x in pyramid[1:]:
@@ -39,8 +39,8 @@ def get_feature_vector(a):
         ('mean', numpy.mean),
         ('stdev', numpy.std),
         ('skew', stats.skew),
-        ('kurtosis', stats.kurtosis),
-        ('entropy', stats.entropy)
+        ('kurtosis', stats.kurtosis)
+        # ('entropy', stats.entropy)
     ]
     feature_names = zip(*feature_functions)[0]
 
@@ -73,7 +73,7 @@ def get_image_features(image):
     # features.update(other_features_here)
     return features
 
-def create_image_feature_dataset(path_images, class_label, path_output):
+def create_image_feature_dataset(path_images, class_label, path_output, image_limit=None):
     print 'creating image feature dataset...'
     dataset = list()
     for i, filename in enumerate(os.listdir(path_images)):
@@ -94,11 +94,12 @@ def create_image_feature_dataset(path_images, class_label, path_output):
         if i % 250 == 0:
             print '{} images processed'.format(i)
 
-        if i > 1000:
-            break
+        if image_limit:
+            if i > image_limit:
+                break
 
     df = pandas.DataFrame(dataset, columns=['image', 'label'] + feature_names)
-    df.to_csv(path_output, index)
+    df.to_csv(path_output, index=False)
     print 'image feature dataset created.'
 
 
@@ -116,10 +117,22 @@ if __name__ == '__main__':
         features = gaussian_pyramid_features(image)
         return features
 
+    # path_cropped = '{}/images/train/cropped/'.format(path)
+    # create_image_feature_dataset(
+    #     path_images=path_cropped,
+    #     class_label='clean',
+    #     path_output='{}/data/train_cropped.csv'.format(path)
+    # )
+    #
+    # path_encoded = '{}/images/train/encoded/'.format(path)
+    # create_image_feature_dataset(
+    #     path_images=path_cropped,
+    #     class_label='message',
+    #     path_output='{}/data/train_encoded.csv'.format(path)
+    # )
 
-    path_cropped = '{}/images/validation/cropped/'.format(path)
-    create_image_feature_dataset(
-        path_images=path_cropped,
-        class_label='clean',
-        path_output='{}/data/cropped.csv'.format(path)
-    )
+    def create_training_set():
+        train_clean = pandas.read_csv('{}/data/train_cropped.csv'.format(path))
+        train_encoded = pandas.read_csv('{}/data/train_encoded.csv'.format(path))
+        train = pandas.concat([train_clean, train_encoded])
+        return train
