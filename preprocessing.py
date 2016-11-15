@@ -131,8 +131,66 @@ if __name__ == '__main__':
     #     path_output='{}/data/train_encoded.csv'.format(path)
     # )
 
-    def create_training_set():
+    def create_training_set(path_output):
         train_clean = pandas.read_csv('{}/data/train_cropped.csv'.format(path))
         train_encoded = pandas.read_csv('{}/data/train_encoded.csv'.format(path))
         train = pandas.concat([train_clean, train_encoded])
+        train.to_csv(path_output, index=False)
         return train
+
+    # create_training_set('{}/data/train.csv'.format(path))
+
+    def plot_dwt(image):
+        cA, cD = pywt.dwt(image, 'haar')
+        print 'shape | image {}; cA {}; cD {}'.format(image.shape, cA.shape, cD.shape)
+        plot_image = numpy.concatenate((cA, cD), axis=1)
+        plt.imshow(plot_image)
+        plt.show()
+
+    def plot_dwt2(image):
+        coeffs = pywt.dwt2(image, 'haar')
+        cA, (cH, cV, cD) = coeffs
+        print 'shape | image {}; cA {}; cD {}'.format(image.shape, cA.shape, cD.shape)
+        cAcH = numpy.concatenate((cA, cH), axis=1)
+        cVcD = numpy.concatenate((cV, cD), axis=1)
+        plot_image = numpy.concatenate((cAcH, cVcD), axis=0)
+        plt.imshow(plot_image)
+        plt.show()
+
+    def plot_dwt_coefficients(coeffs):
+        cA, (cH, cV, cD) = coeffs
+        print 'shape | cA {}; cH {}; cV {}; cD {}'.format(
+            cA.shape, cH.shape, cV.shape, cD.shape
+        )
+        cAcH = numpy.concatenate((cA, cH), axis=1)
+        cVcD = numpy.concatenate((cV, cD), axis=1)
+        plot_image = numpy.concatenate((cAcH, cVcD), axis=0)
+        plt.imshow(plot_image)
+        plt.show()
+
+    def dwt_levels(image):
+        coeffs = pywt.wavedec2(image, wavelet='haar', level=3)
+        return coeffs
+
+    path_output = '{}/images/'.format(path)
+    # filename = '18_1.jpg'
+    filename = '17_1.jpg'
+    image = io.imread(fname='{}{}'.format(path_output, filename), as_grey=True)
+    # io.imshow(image)
+    # plt.show()
+    # plot_dwt(image)
+    # plot_dwt2(image)
+
+    coeffs = pywt.wavedec2(image, wavelet='haar', level=3)
+    for i, (cH, cV, cD) in enumerate(coeffs[1:]):
+        if i == 0:
+            cAcH = numpy.concatenate((coeffs[0], cH), axis=1)
+            cVcD = numpy.concatenate((cV, cD), axis=1)
+            plot_image = numpy.concatenate((cAcH, cVcD), axis=0)
+        else:
+            plot_image = numpy.concatenate((plot_image, cH), axis=1)
+            cVcD = numpy.concatenate((cV, cD), axis=1)
+            plot_image = numpy.concatenate((plot_image, cVcD), axis=0)
+
+    io.imshow(plot_image)
+    plt.show()
