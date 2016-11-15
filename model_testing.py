@@ -116,20 +116,20 @@ if __name__ == '__main__':
         # 'classifier_lr': Pipeline([
         #     ('classifier_lr', LogisticRegression(penalty='l2', n_jobs=6)),
         # ]),
-        'classifier_svc': Pipeline([
-            ('classifier_svc', SVC(
-                kernel='rbf',
-                C=100,
-                tol=1e-3)),
-                # probability=True)),
-        ]),
-        'classifier_svc_linear': Pipeline([
-            ('classifier_svc_linear', SVC(
-                kernel='linear',
-                C=100,
-                tol=1e-4)),
-                # probability=True)),
-        ]),
+        # 'classifier_svc': Pipeline([
+        #     ('classifier_svc', SVC(
+        #         kernel='rbf',
+        #         C=100,
+        #         tol=1e-3)),
+        #         # probability=True)),
+        # ]),
+        # 'classifier_svc_linear': Pipeline([
+        #     ('classifier_svc_linear', SVC(
+        #         kernel='linear',
+        #         C=100,
+        #         tol=1e-4)),
+        #         # probability=True)),
+        # ]),
         # 'classifier_svc_gs': Pipeline([
         #     ('classifier_svc_gs', SVC(kernel="linear", C=10, probability=True)),
         # ]),
@@ -191,9 +191,9 @@ if __name__ == '__main__':
         for name, clf in classifiers.iteritems():
             # print("="*30)
             # print(name)
-            pipeline = Pipeline([('features', combined_features), (name, clf)])
-            estimator = pipeline.fit(X_train, y_train)
-            # estimator = clf.fit(X_train, y_train)
+            # pipeline = Pipeline([('features', combined_features), (name, clf)])
+            # estimator = pipeline.fit(X_train, y_train)
+            estimator = clf.fit(X_train, y_train)
             # name = clf.__class__.__name__
             estimators['{}_{}'.format(name, i)] = estimator
 
