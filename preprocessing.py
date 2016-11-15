@@ -1,6 +1,7 @@
 import os
 import numpy
 import pandas
+import pywt
 
 import skimage
 import skimage.io as io
@@ -172,25 +173,121 @@ if __name__ == '__main__':
         coeffs = pywt.wavedec2(image, wavelet='haar', level=3)
         return coeffs
 
-    path_output = '{}/images/'.format(path)
-    # filename = '18_1.jpg'
-    filename = '17_1.jpg'
-    image = io.imread(fname='{}{}'.format(path_output, filename), as_grey=True)
+    # path_output = '{}/images/'.format(path)
+    # # filename = '18_1.jpg'
+    # filename = '17_1.jpg'
+    # image = io.imread(fname='{}{}'.format(path_output, filename), as_grey=True)
     # io.imshow(image)
     # plt.show()
     # plot_dwt(image)
     # plot_dwt2(image)
 
-    coeffs = pywt.wavedec2(image, wavelet='haar', level=3)
-    for i, (cH, cV, cD) in enumerate(coeffs[1:]):
-        if i == 0:
-            cAcH = numpy.concatenate((coeffs[0], cH), axis=1)
-            cVcD = numpy.concatenate((cV, cD), axis=1)
-            plot_image = numpy.concatenate((cAcH, cVcD), axis=0)
-        else:
-            plot_image = numpy.concatenate((plot_image, cH), axis=1)
-            cVcD = numpy.concatenate((cV, cD), axis=1)
-            plot_image = numpy.concatenate((plot_image, cVcD), axis=0)
+    def plot_wavelet_decomposition(image, coeffs):
+        for i, (cH, cV, cD) in enumerate(coeffs[1:]):
+            if i == 0:
+                cAcH = numpy.concatenate((coeffs[0], cH), axis=1)
+                cVcD = numpy.concatenate((cV, cD), axis=1)
+                plot_image = numpy.concatenate((cAcH, cVcD), axis=0)
+            else:
+                plot_image = numpy.concatenate((plot_image, cH), axis=1)
+                cVcD = numpy.concatenate((cV, cD), axis=1)
+                plot_image = numpy.concatenate((plot_image, cVcD), axis=0)
 
-    io.imshow(plot_image)
-    plt.show()
+        io.imshow(plot_image)#, cmap='gray')
+        plt.show()
+
+    # path_output = '{}/images/'.format(path)
+    # filename = '17_1.jpg'
+    # image = io.imread(fname='{}{}'.format(path_output, filename), as_grey=True)
+    # coeffs = pywt.wavedec2(image, wavelet='haar', level=3)
+    # plot_wavelet_decomposition(image, coeffs)
+
+    def create_feature_name(layer, c, fname):
+        return 'dwt_{layer}_{c}_{fname}'.format(layer=layer, c=c, fname=fname)
+
+
+    def get_wavdec_feature_vector(coeffs):
+        feature_functions = [
+            ('mean', numpy.mean),
+            ('stdev', numpy.std),
+            ('skew', stats.skew),
+            ('kurtosis', stats.kurtosis)]
+
+        feature_vector = {}
+        cA = coeffs[0]
+        for (fname, fn) in feature_functions:
+            feature_name = 'dwt_{layer}_cA_{fname}'.format(
+                layer=len(coeffs) - 1, fname=fname
+            )
+            # reduce sensitivity to noise
+            c_tol = abs(cA) > 1 # coefficients with magnitude > 1 allowed
+            if c_tol.any():
+                feature_vector[feature_name] = fn(cA[c_tol].flatten())
+            else:
+                feature_vector[feature_name] = 0
+
+        for i, (cH, cV, cD) in enumerate(coeffs[1:]):
+            layer = len(coeffs) - 1 - i
+
+            for (fname, fn) in feature_functions:
+                for c, cX in zip(('cH', 'cV', 'cD'), (cH, cV, cD)):
+                    feature_name = 'dwt_{layer}_{c}_{fname}'.format(
+                        layer=layer, c=c, fname=fname
+                    )
+                    c_tol = abs(cX) > 1
+                    if c_tol.any():
+                        feature_vector[feature_name] = fn(cX[c_tol].flatten())
+                    else:
+                        feature_vector[feature_name] = 0
+
+        return feature_vector
+
+    # feature_vector = get_wavdec_feature_vector(coeffs)
+
+
+    def create_image_wavdec_feature_dataset(path_images, class_label, path_output, image_limit=None):
+        print 'creating image feature dataset...'
+        dataset = list()
+        for i, filename in enumerate(os.listdir(path_images)):
+            image = io.imread(
+                fname='{}{}'.format(path_images, filename),
+                as_grey=True
+            )
+            coeffs = pywt.wavedec2(image, wavelet='haar', level=3)
+            features = get_wavdec_feature_vector(coeffs)
+            if i == 0:
+                feature_names = features.keys()
+
+            row = [filename, class_label]
+            for feature in feature_names:
+                row.append(features[feature])
+
+            dataset.append(row)
+
+            if i % 250 == 0:
+                print '{} images processed'.format(i)
+
+            if image_limit:
+                if i > image_limit:
+                    break
+
+        df = pandas.DataFrame(dataset, columns=['image', 'label'] + feature_names)
+        df.to_csv(path_output, index=False)
+        print 'image feature dataset created.'
+
+
+    path_cropped = '{}/images/train/cropped/'.format(path)
+    create_image_wavdec_feature_dataset(
+        path_images=path_cropped,
+        class_label='clean',
+        path_output='{}/data/train_cropped.csv'.format(path)
+    )
+
+    path_encoded = '{}/images/train/encoded/'.format(path)
+    create_image_wavdec_feature_dataset(
+        path_images=path_cropped,
+        class_label='message',
+        path_output='{}/data/train_encoded.csv'.format(path)
+    )
+
+    create_training_set('{}/data/train.csv'.format(path))
