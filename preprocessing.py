@@ -152,8 +152,8 @@ if __name__ == '__main__':
         coeffs = pywt.dwt2(image, 'haar')
         cA, (cH, cV, cD) = coeffs
         print 'shape | image {}; cA {}; cD {}'.format(image.shape, cA.shape, cD.shape)
-        cAcH = numpy.concatenate((cA, cH), axis=1)
-        cVcD = numpy.concatenate((cV, cD), axis=1)
+        cAcH = numpy.concatenate((abs(cA), abs(cH)), axis=1)
+        cVcD = numpy.concatenate((abs(cV), abs(cD)), axis=1)
         plot_image = numpy.concatenate((cAcH, cVcD), axis=0)
         plt.imshow(plot_image)
         plt.show()
@@ -174,13 +174,16 @@ if __name__ == '__main__':
         return coeffs
 
     # path_output = '{}/images/'.format(path)
-    # # filename = '18_1.jpg'
-    # filename = '17_1.jpg'
+    # filename = '18_1.jpg'
+    # # filename = '17_1.jpg'
     # image = io.imread(fname='{}{}'.format(path_output, filename), as_grey=True)
     # io.imshow(image)
     # plt.show()
-    # plot_dwt(image)
-    # plot_dwt2(image)
+    # # plot_dwt(image)
+    # # plot_dwt2(image)
+
+    def rgb_to_grey(image):
+        return numpy.dot(image, [0.2989, 0.5870, 0.1140])
 
     def plot_wavelet_decomposition(image, coeffs):
         for i, (cH, cV, cD) in enumerate(coeffs[1:]):
@@ -193,14 +196,16 @@ if __name__ == '__main__':
                 cVcD = numpy.concatenate((cV, cD), axis=1)
                 plot_image = numpy.concatenate((plot_image, cVcD), axis=0)
 
+        plt.grid(False)
         io.imshow(plot_image)#, cmap='gray')
         plt.show()
 
-    # path_output = '{}/images/'.format(path)
-    # filename = '17_1.jpg'
+    path_output = '{}/images/'.format(path)
+    filename = '17_11.jpg'
     # image = io.imread(fname='{}{}'.format(path_output, filename), as_grey=True)
-    # coeffs = pywt.wavedec2(image, wavelet='haar', level=3)
-    # plot_wavelet_decomposition(image, coeffs)
+    image = io.imread(fname='{}{}'.format(path_output, filename))[:, :, 0]
+    coeffs = pywt.wavedec2(image, wavelet='haar', level=3)
+    plot_wavelet_decomposition(image, coeffs)
 
     def create_feature_name(layer, c, fname):
         return 'dwt_{layer}_{c}_{fname}'.format(layer=layer, c=c, fname=fname)
@@ -250,19 +255,20 @@ if __name__ == '__main__':
         dataset = list()
         for i, filename in enumerate(os.listdir(path_images)):
             image = io.imread(
-                fname='{}{}'.format(path_images, filename),
-                as_grey=True
+                fname='{}{}'.format(path_images, filename)
+                # as_grey=True
             )
-            coeffs = pywt.wavedec2(image, wavelet='haar', level=3)
-            features = get_wavdec_feature_vector(coeffs)
-            if i == 0:
-                feature_names = features.keys()
+            if len(image.shape) == 3:   # make sure rgb image arrays
+                coeffs = pywt.wavedec2(image[:, :, 0], wavelet='haar', level=3)
+                features = get_wavdec_feature_vector(coeffs)
+                if i == 0:
+                    feature_names = features.keys()
 
-            row = [filename, class_label]
-            for feature in feature_names:
-                row.append(features[feature])
+                row = [filename, class_label]
+                for feature in feature_names:
+                    row.append(features[feature])
 
-            dataset.append(row)
+                dataset.append(row)
 
             if i % 250 == 0:
                 print '{} images processed'.format(i)
@@ -276,18 +282,18 @@ if __name__ == '__main__':
         print 'image feature dataset created.'
 
 
-    path_cropped = '{}/images/train/cropped/'.format(path)
-    create_image_wavdec_feature_dataset(
-        path_images=path_cropped,
-        class_label='clean',
-        path_output='{}/data/train_cropped.csv'.format(path)
-    )
-
-    path_encoded = '{}/images/train/encoded/'.format(path)
-    create_image_wavdec_feature_dataset(
-        path_images=path_cropped,
-        class_label='message',
-        path_output='{}/data/train_encoded.csv'.format(path)
-    )
-
-    create_training_set('{}/data/train.csv'.format(path))
+    # path_cropped = '{}/images/train/cropped/'.format(path)
+    # create_image_wavdec_feature_dataset(
+    #     path_images=path_cropped,
+    #     class_label='clean',
+    #     path_output='{}/data/train_cropped.csv'.format(path)
+    # )
+    #
+    # path_encoded = '{}/images/train/encoded/'.format(path)
+    # create_image_wavdec_feature_dataset(
+    #     path_images=path_cropped,
+    #     class_label='message',
+    #     path_output='{}/data/train_encoded.csv'.format(path)
+    # )
+    #
+    # create_training_set('{}/data/train.csv'.format(path))
