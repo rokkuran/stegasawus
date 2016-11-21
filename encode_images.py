@@ -33,7 +33,7 @@ def encode_message(path_images, message, path_output):
     return images_failed
 
 
-def plot_embedding_locations(image1, image2, multiplier=100):
+def plot_embedding_locations(image1, image2, multiplier=1):
     p = numpy.concatenate((image1, image2), axis=1)
     diff = numpy.concatenate(
         ((image2 - image1) * multiplier, abs(image2 - image1) * multiplier),
@@ -98,8 +98,13 @@ if __name__ == '__main__':
     # path_cropped = '{}/images/validation/cropped/'.format(path)
     # path_output = '{}/images/validation/encoded/'.format(path)
     #
+
+    # path_images = '/home/rokkuran/workspace/kaggle/cats_vs_dogs/train/cats/'
+    path_cover = '{}/images/train_catdog/cover/'.format(path)
+    path_stego = '{}/images/train_catdog/stego/'.format(path)
+
     # message = get_message(filepath_message)
-    # encode_message(path_cropped, message * 11, path_output)
+    # encode_message(path_cover, message * 11, path_stego)
     # #
     # path_images = '{}/images/train/cropped/'.format(path)
     # path_output = '{}/images/'.format(path)
@@ -123,19 +128,22 @@ if __name__ == '__main__':
     # plt.imshow(plot_image)
     # plt.show()
 
-    filename = '14.jpg'
+    # filename = '14.jpg'
+    filename = 'cat.698.jpg'
     # image1 = io.imread('{}{}'.format(path_cropped, filename), as_grey=True)
     # image2 = io.imread('{}{}'.format(path_output, filename), as_grey=True)
 
-    image1 = io.imread('{}{}'.format(path_cropped, filename))
-    image2 = io.imread('{}{}'.format(path_output, filename))
+    # image1 = io.imread('{}{}'.format(path_cropped, filename))
+    # image2 = io.imread('{}{}'.format(path_output, filename))
+    image1 = io.imread('{}{}'.format(path_cover, filename))
+    image2 = io.imread('{}{}'.format(path_stego, filename))
     # image1 = rgb_to_grey(image1)
     # image2 = rgb_to_grey(image2)
-    # plot_embedding_locations(image1, image2, multiplier=1)
+    plot_embedding_locations(image1, image2, multiplier=1)
     # plot_embedding_locations(image1[:, :, 0], image2[:, :, 0], multiplier=1)
-    plot_rgb_embeddings(image1, image2)
+    # plot_rgb_embeddings(image1, image2)
 
-    x = numpy.linspace(-500, 500, 1000)
-    plt.plot(x, mlab.normpdf(x, 130.891220093, 67.3387022185), color='k')
-    plt.plot(x, mlab.normpdf(x, 130.885940552, 67.3199700626), color='r')
-    plt.show()
+    # x = numpy.linspace(-500, 500, 1000)
+    # plt.plot(x, mlab.normpdf(x, 130.891220093, 67.3387022185), color='k')
+    # plt.plot(x, mlab.normpdf(x, 130.885940552, 67.3199700626), color='r')
+    # plt.show()
