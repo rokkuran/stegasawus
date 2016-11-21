@@ -11,7 +11,8 @@ plt.show()
 
 
 path = '/home/rokkuran/workspace/stegasawus'
-path_train = '{}/data/train_catdog.csv'.format(path)
+# path_train = '{}/data/train_catdog.csv'.format(path)
+path_train = '{}/data/train_catdog_ac.csv'.format(path)
 train = pandas.read_csv(path_train)
 
 bins = 20
@@ -37,4 +38,24 @@ plt.bar(bin_edges2[:-1], hist3, color='r', alpha=0.5, edgecolor='None', width=0.
 
 bin_span = numpy.concatenate((bin_edges1, bin_edges2))
 plt.xlim(bin_span.min(), bin_span.max())
+plt.show()
+
+
+path = '/home/rokkuran/workspace/stegasawus'
+path_train = '{}/data/train_catdog_rndembed_ac.csv'.format(path)
+train = pandas.read_csv(path_train)
+
+lc = plt.scatter(
+    # train.aca_01[train.label=='cover'],
+    train.ac_01_mean[train.label=='cover'],
+    train.ac_01_stdev[train.label=='cover'],
+    marker='o', color='b', alpha=0.66
+)
+ls = plt.scatter(
+    # train.aca_01[train.label=='stego'],
+    train.ac_01_mean[train.label=='stego'],
+    train.ac_01_stdev[train.label=='stego'],
+    marker='o', color='r', alpha=0.66
+)
+plt.legend((lc, ls), ('cover', 'stego'))
 plt.show()
