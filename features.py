@@ -30,6 +30,8 @@ def get_ac_features(I, lags=((1, 0), (0, 1), (1, 1), (1, 2), (2, 2), (2, 2))):
     for x, y in lags:
         ac = I[x:, y:] * I[:m-x, :n-y]
         ac_diff = I[x:, y:] - ac**0.5
+        aca = (I[x:, y:] * I[:m-x, :n-y]) / (I[x:, y:].std() * I[:m-x, :n-y].std())
+        features['aca_{}{}'.format(x, y)] = aca.sum()
 
         for f, fn in feature_functions:
             features['ac_{}{}_{}'.format(x, y, f)] = fn(ac.flatten())
@@ -138,23 +140,45 @@ def create_training_set(filepath_cover, filepath_stego, path_output):
 
 
 path = '/home/rokkuran/workspace/stegasawus'
-path_cover = '{}/images/train_catdog/cover/'.format(path)
-path_stego = '{}/images/train_catdog/stego/'.format(path)
+# path_cover = '{}/images/train_catdog/cover/'.format(path)
+# path_stego = '{}/images/train_catdog/stego/'.format(path)
+
+path_cover = '{}/images/train_catdog_rndembed/cover/'.format(path)
+path_stego = '{}/images/train_catdog_rndembed/stego/'.format(path)
+
+# path_cover = '{}/images/train/cropped/'.format(path)
+# path_stego = '{}/images/train/encoded/'.format(path)
 
 create_image_ac_feature_dataset(
     path_images=path_cover,
     class_label='cover',
-    path_output='{}/data/train_catdog_ac_cover.csv'.format(path)
+    # path_output='{}/data/train_catdog_ac_cover.csv'.format(path)
+    path_output='{}/data/train_catdog_rndembed_ac_cover.csv'.format(path)
+    # path_output='{}/data/train_ac_cover.csv'.format(path)
 )
 
 create_image_ac_feature_dataset(
     path_images=path_stego,
     class_label='stego',
-    path_output='{}/data/train_catdog_ac_stego.csv'.format(path)
+    # path_output='{}/data/train_catdog_ac_stego.csv'.format(path)
+    path_output='{}/data/train_catdog_rndembed_ac_stego.csv'.format(path)
+    # path_output='{}/data/train_ac_stego.csv'.format(path)
 )
 
+# create_training_set(
+#     '{}/data/train_catdog_ac_cover.csv'.format(path),
+#     '{}/data/train_catdog_ac_stego.csv'.format(path),
+#     '{}/data/train_catdog_ac.csv'.format(path)
+# )
+
 create_training_set(
-    '{}/data/train_catdog_ac_cover.csv'.format(path),
-    '{}/data/train_catdog_ac_stego.csv'.format(path),
-    '{}/data/train_catdog_ac.csv'.format(path)
+    '{}/data/train_catdog_rndembed_ac_cover.csv'.format(path),
+    '{}/data/train_catdog_rndembed_ac_stego.csv'.format(path),
+    '{}/data/train_catdog_rndembed_ac.csv'.format(path)
 )
+
+# create_training_set(
+#     '{}/data/train_ac_cover.csv'.format(path),
+#     '{}/data/train_ac_stego.csv'.format(path),
+#     '{}/data/train_ac.csv'.format(path)
+# )
