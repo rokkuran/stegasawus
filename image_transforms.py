@@ -2,7 +2,7 @@ import os
 import skimage
 import skimage.io as io
 
-from skimage.filter import guassian_filter
+# from skimage.filter import guassian_filter
 from skimage.transform import pyramid_gaussian
 
 
@@ -34,11 +34,16 @@ path = '/home/rokkuran/workspace/stegasawus'
 # path_output = '{}/images/train/encoded/'.format(path)
 
 # validation dataset
-path_images = '/home/rokkuran/workspace/kaggle/painter_by_numbers/train_2/'
-path_cropped = '{}/images/validation/cropped/'.format(path)
-path_output = '{}/images/validation/encoded/'.format(path)
+# path_images = '/home/rokkuran/workspace/kaggle/painter_by_numbers/train_2/'
+# path_cropped = '{}/images/validation/cropped/'.format(path)
+# path_output = '{}/images/validation/encoded/'.format(path)
 
-# crop_images(path_images, path_cropped)
+
+path_images = '/home/rokkuran/workspace/kaggle/cats_vs_dogs/train/cats/'
+path_cover = '{}/images/train_catdog/cover/'.format(path)
+path_stego = '{}/images/train_catdog/stego/'.format(path)
+
+# crop_images(path_images, path_cover)
 
 
 if __name__ == '__main__':
