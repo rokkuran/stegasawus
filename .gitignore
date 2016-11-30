@@ -2,6 +2,7 @@ data/
 images/
 jpeg-v4/
 output/
+archive/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
