@@ -7,6 +7,7 @@ from stegano import exifHeader
 from stegano import lsbset
 from stegano.lsbset import generators
 
+
 #*******************************************************************************
 def get_secret_message(filepath):
     with open(filepath, 'rb') as f:
@@ -16,28 +17,40 @@ def get_secret_message(filepath):
 def hide_message_jpg(secret_message, cover_file, stego_file):
     exifHeader.hide(cover_file, stego_file, secret_message=secret_message)
 
-def batch_hide_message_jpg(secret_message, path_images, path_output):
-    print 'encoding images...'
-    for i, filename in enumerate(os.listdir(path_images)):
-        cover = '{}{}'.format(path_images, filename)
-        stego = '{}{}'.format(path_output, filename)
-        exifHeader.hide(cover, stego, secret_message=secret_message*1000)
-        print '{}: {}'.format(i, filename)
-    print 'image encoding complete.'
 
-def batch_hide_message_png(secret_message, path_images, path_output):
+def batch_hide_message(secret_message, path_images, path_output, file_type,
+    generator=''):
+    """"""
+    secret_message *= 10
+
     print 'encoding images...'
-    for i, filename in enumerate(os.listdir(path_images)):
+    file_type = file_type.lower()
+
+    for i, filename in enumerate(os.listdir(path_images), start=1):
         try:
             cover = '{}{}'.format(path_images, filename)
             stego = '{}{}'.format(path_output, filename)
-            S = lsbset.hide(cover, secret_message, generators.eratosthenes())
-            S.save(stego)
+
+            if file_type == 'png':
+                S = lsbset.hide(cover, secret_message, generator=generators.identity())
+                S.save(stego)
+            elif file_type == 'jpg':
+                exifHeader.hide(cover, stego, secret_message=secret_message)
+            else:
+                print "file_type '%s' is not supported. \noptions = jpg, png."
+
             print '{}: {}'.format(i, filename)
         except IndexError as e:
             print '{}: {} | IndexError: {}'.format(i, filename, e)
+        except Exception as e:
+            print '{}   : {} | Exception: {}'.format(i, filename, e)
 
     print 'image encoding complete.'
+
+
+def batch_hide_message_rnd_generator():
+    pass
+
 
 def batch_png_to_jpg(path_input, path_output):
     print 'coverting images...'
@@ -57,6 +70,7 @@ if __name__ == '__main__':
     # path_output = '{}images/stego/catdog/'.format(path)
     # secret_message = get_secret_message('{}message.txt'.format(path))
     # batch_hide_message_jpg(secret_message, path_images, path_output)
+    # batch_hide_message(secret_message, path_images, path_output, 'jpg')
 
     # exifHeader.hide(
     #     "{}images/Lenna.jpg".format(path),
@@ -80,4 +94,17 @@ if __name__ == '__main__':
     path_images = '{}images/png/cover/'.format(path)
     path_output = '{}images/png/stego/'.format(path)
     secret_message = get_secret_message('{}message.txt'.format(path))
-    batch_hide_message_png(secret_message, path_images, path_output)
+    # secret_message = 'pants pants underpants...'
+    # batch_hide_message_png(secret_message, path_images, path_output)
+    batch_hide_message(
+        secret_message=secret_message,
+        path_images=path_images,
+        path_output=path_output,
+        file_type='png'
+        # generator=generators.eratosthenes()
+        # generator=generators.identity(),
+        # generator=generators.Dead_Man_Walking()
+        # generator=generators.fibonacci()
+        # generator=generators.syracuse()
+        # generator=generators.log_gen()
+    )
