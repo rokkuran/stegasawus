@@ -8,6 +8,7 @@ from stegano.lsbset import generators
 from scipy import stats
 
 import matplotlib.pyplot as plt
+import seaborn as sns
 import skimage.io as io
 
 
@@ -89,30 +90,39 @@ def generate_feature_histograms(filepath_train, bins=50, normalise=False):
         plt.close()
 
 
-def generate_log_feature_histograms(filepath_train, bins=20):
+def generate_feature_kde(filepath_train, normalise=False):
     """"""
     train = pandas.read_csv(filepath_train)
 
-    for feature in [x for x in train.columns if x not in ('label', 'image')]:
-        try:
-            plt.hist(
-                train[train.label=='cover'][feature].apply(numpy.log1p),
-                bins=bins, color='b', alpha=0.3, edgecolor='None'
-            )
+    cols = [x for x in train.columns if x not in ('label', 'image')]
 
-            plt.hist(
-                train[train.label=='stego'][feature].apply(numpy.log1p),
-                bins=bins, color='r', alpha=0.3, edgecolor='None'
-            )
-            # plt.ylim([0, 50])
-            plt.legend(loc='upper right')
-            plt.title(feature)
-            plt.savefig('{}/output/{}_bins{}_log1p.png'.format(path, feature, bins))
-            plt.close()
-            print feature
-        except ValueError as e:
-            print feature, e
+    if normalise:
+        train[cols] = train[cols].apply(lambda x: (x - x.mean()) / x.std())
 
+    for feature in cols:
+        I = train[train.label=='cover'][feature]
+        S = train[train.label=='stego'][feature]
+
+        I_kde = stats.gaussian_kde(I)
+        S_kde = stats.gaussian_kde(S)
+
+        x = numpy.hstack((I, S))
+        xs = numpy.linspace(min(x), max(x), 250)
+
+        plt.plot(xs, I_kde(xs), color='b', lw=1.5, alpha=0.3, label='cover')
+        plt.plot(xs, S_kde(xs), color='r', lw=1.5, alpha=0.3, label='stego')
+
+        plt.legend(loc='upper right', frameon=False)
+        plt.title('KDE (Gaussian): {}'.format(feature))
+        plt.savefig('{}/output/kde_{}.png'.format(path, feature))
+        print feature
+        plt.close()
+
+
+def plot_joint_dist_hex(x, y):
+    sns.set(style="ticks")
+    sns.jointplot(x, y, kind="hex", stat_func=stats.kendalltau, color="#4CB391")
+    plt.show()
 
 
 #*******************************************************************************
@@ -171,9 +181,10 @@ if __name__ == '__main__':
     # I = io.imread(path_cover + filename)
     # S = io.imread(path_stego + filename)
 
-    generate_feature_histograms(
-        '{}data/train.csv'.format(path),
-        bins=50,
-        normalise=False
-    )
+    # generate_feature_histograms(
+    #     '{}data/train.csv'.format(path),
+    #     bins=50,
+    #     normalise=False
+    # )
     # generate_log_feature_histograms('{}data/train.csv'.format(path), bins=50)
+    # generate_feature_kde('{}data/train.csv'.format(path))
