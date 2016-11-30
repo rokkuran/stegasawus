@@ -54,8 +54,12 @@ train = train.drop([target, 'image'], axis=1)
 
 #*******************************************************************************
 combined_features = FeatureUnion([
-    ('scaler', StandardScaler()),
-    # ('pca', KernelPCA(n_components=10)),
+    # ('scaler', StandardScaler()),
+    ('pca', Pipeline([
+        ('scaler', StandardScaler()),
+        ('pca', PCA()),
+    ])),
+    # ('kpca', KernelPCA(n_components=10)),
 ])
 
 #*******************************************************************************
@@ -74,11 +78,13 @@ classifiers = {
         tol=1e-3
     ),
     'svc_rbf_default': SVC(kernel='rbf'),
-    'svc_linear': SVC(
-        kernel='linear',
-
+    'svc_linear': LinearSVC(
+        C=0.1,
+        loss='squared_hinge',
+        penalty='l2',
+        tol=1e-3
     ),
-    'svc_linear_default': SVC(kernel='linear'),
+    'svc_linear_default': LinearSVC(),
     'nusvc': NuSVC(),
     'rf': RandomForestClassifier(
         criterion='entropy',
@@ -131,9 +137,8 @@ parameters = {
         'svc_rbf__gamma': [0.01, 0.1, 0.25, 0.5, 0.75],
     },
     'svc_linear': {
-        'svc_linear__C': [1, 50, 100, 250, 600, 650, 750, 800, 900, 1000],
+        'svc_linear__C': numpy.logspace(-2, 3, 6),
         'svc_linear__tol': [1e-3, 1e-4],
-        'svc_linear__gamma': [0.01, 0.1, 0.25, 0.5, 0.75],
     },
     'nusvc': {
         'nusvc__nu': [0.01, 0.1, 0.25, 0.5, 0.75, 0.90],
@@ -176,29 +181,49 @@ parameters = {
 }
 
 #*******************************************************************************
-name = 'svc_linear'
-pipeline = Pipeline([
-    ('features', combined_features),
-    (name, classifiers[name]),
-])
-
-model_parameter_tuning(
-    clf=pipeline,
-    X_train=train.as_matrix(),
-    y_train=y_train_binary,
-    cv=5,
-    parameters=parameters[name],
-    scoring='accuracy'
-)
+# name = 'svc_linear'
+# pipeline = Pipeline([
+#     ('features', combined_features),
+#     (name, classifiers[name]),
+# ])
+#
+# model_parameter_tuning(
+#     clf=pipeline,
+#     X_train=train.as_matrix(),
+#     y_train=y_train_binary,
+#     cv=3,
+#     parameters=parameters[name],
+#     scoring='accuracy'
+# )
 
 #*******************************************************************************
+def scoring_metrics(y_pred, y_true, return_string=False):
+    acc = metrics.accuracy_score(y_true, y_pred)
+    ll = metrics.log_loss(y_true, y_pred)
+    p = metrics.precision_score(y_true, y_pred)
+    r = metrics.recall_score(y_true, y_pred)
+    f1 = metrics.f1_score(y_true, y_pred)
+    roc_auc = metrics.roc_auc_score(y_true, y_pred)
+
+    scores = [acc, ll, p, r, f1, roc_auc]
+
+    s = 'acc = {:.2%}; log loss = {:.4f}; p = {:.4f} '.format(acc, ll, p)
+    s += 'r = {:.4f}; f1 = {:.4f}; roc_auc = {:.4f}'.format(r, f1, roc_auc)
+
+    if return_string:
+        return scores, s
+    else:
+        return scores
+
+#*******************************************************************************
+scores = []
 score_cols = [
     'classifier', 'split', 'acc', 'log_loss', 'precision', 'recall',
-    'f1_score', 'roc_auc'
+    'f1', 'roc_auc'
 ]
 
 sss = StratifiedShuffleSplit(
-    n_splits=1,
+    n_splits=10,
     test_size=0.2,
     random_state=0
 )
@@ -211,21 +236,24 @@ for i, (train_index, val_index) in enumerate(sss.split(train, y_train_binary)):
         pipeline = Pipeline([('features', combined_features), (name, clf)])
         estimator = pipeline.fit(X_train, y_train)
 
-        train_predictions = estimator.predict(X_val)
+        y_pred = estimator.predict(X_val)
 
-        acc = metrics.accuracy_score(y_val, train_predictions)
-        ll = metrics.log_loss(y_val, train_predictions)
-        p = metrics.precision_score(y_val, train_predictions)
-        r = metrics.recall_score(y_val, train_predictions)
-        f1 = metrics.f1_score(y_val, train_predictions)
-        roc_auc = metrics.roc_auc_score(y_val, train_predictions)
+        m, ps = scoring_metrics(y_val, y_pred, return_string=True)
+        ps += ' | {}_{}'.format(name, i)
+        print ps
+        scores.append([name, i] + m)
 
-        s = 'acc = {:.2%}; log loss = {:.4f}; p = {:.4f} '.format(acc, ll, p)
-        s += 'r = {:.4f}; f1 = {:.4f}; roc_auc = {:.4f}'.format(r, f1, roc_auc)
-        s += ' | {}_{}'.format(name, i)
-        print s
+scores = pandas.DataFrame(scores, columns=score_cols)
+scores = scores.sort_values(
+    by=['acc', 'f1', 'roc_auc'],
+    ascending=False
+).reset_index(drop=True)
+# print '\n', scores.head(10)
 
-        scores.append([name, i, acc*100, ll, p, r, f1, roc_auc])
+scores_mean = scores.ix[:, scores.columns != 'split'] \
+    .groupby(['classifier']) \
+    .mean() \
+    .sort_values(by=['acc', 'f1', 'roc_auc'], ascending=False) \
+    .reset_index()
 
-clf_acc = pandas.DataFrame(scores, columns=score_cols)
-print log.sort_values(by=['acc'], ascending=[False])
+print '\n', scores_mean
