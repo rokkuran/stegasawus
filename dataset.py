@@ -43,13 +43,31 @@ def batch_hide_message(secret_message, path_images, path_output, file_type,
         except IndexError as e:
             print '{}: {} | IndexError: {}'.format(i, filename, e)
         except Exception as e:
-            print '{}   : {} | Exception: {}'.format(i, filename, e)
+            print '{} : {} | Exception: {}'.format(i, filename, e)
 
     print 'image encoding complete.'
 
 
 def batch_hide_message_rnd_generator():
     pass
+
+
+def crop_images(path_images, path_output, dimensions=(256, 256)):
+    print 'cropping images...'
+    m, n = dimensions
+    for i, filename in enumerate(os.listdir(path_images)):
+        try:
+            image = io.imread('{}{}'.format(path_images, filename))
+            cropped = image[0:m, 0:n]
+            io.imsave(
+                fname='{}{}'.format(path_output, filename),
+                arr=cropped
+            )
+            print '{}: {}'.format(i, filename)
+        except IndexError:
+            print '{}: {} failed - dimensions incompatible'.format(i, filename)
+
+    print 'all images cropped and saved.'
 
 
 def batch_png_to_jpg(path_input, path_output):
