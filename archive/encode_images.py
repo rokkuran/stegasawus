@@ -34,6 +34,7 @@ def encode_message(path_images, message, path_output):
 
 
 def plot_embedding_locations(image1, image2, multiplier=1):
+    print image1.shape, image2.shape
     p = numpy.concatenate((image1, image2), axis=1)
     diff = numpy.concatenate(
         ((image2 - image1) * multiplier, abs(image2 - image1) * multiplier),
@@ -139,9 +140,9 @@ if __name__ == '__main__':
     image2 = io.imread('{}{}'.format(path_stego, filename))
     # image1 = rgb_to_grey(image1)
     # image2 = rgb_to_grey(image2)
-    plot_embedding_locations(image1, image2, multiplier=1)
+    # plot_embedding_locations(rgb_to_grey(image1), image2, multiplier=1)
     # plot_embedding_locations(image1[:, :, 0], image2[:, :, 0], multiplier=1)
-    # plot_rgb_embeddings(image1, image2)
+    plot_rgb_embeddings(image1, image2)
 
     # x = numpy.linspace(-500, 500, 1000)
     # plt.plot(x, mlab.normpdf(x, 130.891220093, 67.3387022185), color='k')
