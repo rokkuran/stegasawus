@@ -9,10 +9,41 @@ from skimage import io
 
 #*******************************************************************************
 def rgb_to_grey(image):
+    """
+    Converts RGB image to greyscale.
+
+    Parameters
+    ----------
+    image : array
+        RGB array
+
+    Returns
+    -------
+    numpy.ndarray
+        Greyscale image array from RGB
+
+    """
     return numpy.dot(image, [0.2989, 0.5870, 0.1140])
 
 
 def statistical_metrics(values, name):
+    """
+    Calculates statistical metrics from array (mean, std, skew, kurtosis).
+
+    Parameters
+    ----------
+    values : numpy.ndarray
+        Array to compute statics on.
+
+    name : string
+        Name to prefix metrics in dict output.
+
+    Returns
+    -------
+    features : dict
+        Dictionary of metrics with keys of form 'name_metric'
+
+    """
     metrics = (
         ('mean', numpy.mean),
         ('stdev', numpy.std),
@@ -26,8 +57,24 @@ def statistical_metrics(values, name):
 
     return features
 
-# lags=((1, 0), (0, 1), (1, 1), (1, 2), (2, 2), (2, 2))
+
 def autocorrelation_features(I, lags=((1, 0), (0, 1))):
+    """
+    Calculate the autocorrelation statistical features (specified in
+    statistical_metrics function) from a 2D image array for the specified lags.
+
+    Parameters
+    ----------
+    I : 2D array
+        Array from a greyscale image or an individual colour channel.
+    lags : array of coordinate shift items
+        Defaults to 1 pixel vertical and horizontal lags - ((1, 0), (0, 1)).
+
+    Returns
+    -------
+    features : dict
+
+    """
     features = {}
     m, n = I.shape
 
@@ -43,6 +90,22 @@ def autocorrelation_features(I, lags=((1, 0), (0, 1))):
 
 
 def rgb_autocorrelation_features(I, lags=((1, 0), (0, 1))):
+    """
+    Calculate the autocorrelation statistical features of a RGB image
+    array (m, n, 3) for the specified lags.
+
+    Parameters
+    ----------
+    I : array
+        RGB image array (m, n, 3).
+    lags : array of coordinate shift items
+        Defaults to 1 pixel vertical and horizontal lags - ((1, 0), (0, 1)).
+
+    Returns
+    -------
+    features : dict
+
+    """
     features = {}
     m, n, _ = I.shape
 
@@ -58,7 +121,7 @@ def rgb_autocorrelation_features(I, lags=((1, 0), (0, 1))):
     return features
 
 
-def create_image_ac_feature_dataset(path_images, class_label, path_output,
+def autocorrelation_feature_dataset(path_images, class_label, path_output,
     image_limit=None):
     """Create autocorrelation feature set from images."""
 
@@ -67,12 +130,9 @@ def create_image_ac_feature_dataset(path_images, class_label, path_output,
     dataset = list()
     for i, filename in enumerate(os.listdir(path_images)):
         fname = '{}{}'.format(path_images, filename)
-        # image = io.imread(fname, as_grey=True)
         image = io.imread(fname)
 
         lags = ((1, 0), (0, 1), (1, 1), (1, 2), (2, 2), (2, 2))
-        # lags = ((1, 0), (0, 1))
-        # features = autocorrelation_features(image, lags=lags)
         features = rgb_autocorrelation_features(image, lags=lags)
         if i == 0:
             feature_names = features.keys()
@@ -112,6 +172,7 @@ def get_wavdec_feature_vector(coeffs):
         ('kurtosis', stats.kurtosis)]
 
     feature_vector = {}
+
     cA = coeffs[0]
     for (fname, fn) in feature_functions:
         feature_name = 'dwt_{layer}_cA_{fname}'.format(
@@ -141,7 +202,35 @@ def get_wavdec_feature_vector(coeffs):
     return feature_vector
 
 
-def create_image_wavelet_feature_dataset(path_images, class_label, path_output,
+def wavdec_feature_vector(coeffs):
+    """"""
+    feature_vector = {}
+
+    cA = coeffs[0]
+    name = 'dwt_{layer}_cA'.format(layer=len(coeffs) - 1)
+
+    # reduce sensitivity to noise
+    c_tol = abs(cA) > 1 # coefficients with magnitude > 1 allowed
+    if c_tol.any():
+        feature_vector.update(statistical_metrics(cA[c_tol], name))
+    else:
+        feature_vector.update(statistical_metrics(numpy.zeros(1), name))
+
+    for i, (cH, cV, cD) in enumerate(coeffs[1:]):
+        layer = len(coeffs) - 1 - i
+        for c, cX in zip(('cH', 'cV', 'cD'), (cH, cV, cD)):
+            name = 'dwt_{layer}_{c}'.format(layer=layer, c=c)
+            c_tol = abs(cX) > 1
+            if c_tol.any():
+                feature_vector.update(statistical_metrics(cX[c_tol], name))
+            else:
+                feature_vector.update(statistical_metrics(numpy.zeros(1), name))
+
+    return feature_vector
+
+
+
+def wavelet_feature_dataset(path_images, class_label, path_output,
     image_limit=None):
     """Create autocorrelation feature set from images."""
 
@@ -155,7 +244,7 @@ def create_image_wavelet_feature_dataset(path_images, class_label, path_output,
 
         image_greyscale = rgb_to_grey(image)
         coeffs = pywt.wavedec2(image_greyscale, wavelet='haar', level=3)
-        features = get_wavdec_feature_vector(coeffs)
+        features = wavdec_feature_vector(coeffs)
         if i == 0:
             feature_names = features.keys()
 
@@ -176,6 +265,7 @@ def create_image_wavelet_feature_dataset(path_images, class_label, path_output,
 
     print 'image feature dataset created.'
 
+
 #*******************************************************************************
 if __name__ == '__main__':
     path = '/home/rokkuran/workspace/stegasawus/'
@@ -185,25 +275,25 @@ if __name__ == '__main__':
     path_cover = '{}images/png/cover/'.format(path)
     path_stego = '{}images/png/stego/'.format(path)
 
-    # create_image_ac_feature_dataset(
+    # autocorrelation_feature_dataset(
     #     path_images=path_cover,
     #     class_label='cover',
     #     path_output='{}data/train_cover.csv'.format(path)
     # )
     #
-    # create_image_ac_feature_dataset(
+    # autocorrelation_feature_dataset(
     #     path_images=path_stego,
     #     class_label='stego',
     #     path_output='{}data/train_stego.csv'.format(path)
     # )
 
-    create_image_wavelet_feature_dataset(
+    wavelet_feature_dataset(
         path_images=path_cover,
         class_label='cover',
         path_output='{}data/train_cover_wavelet.csv'.format(path)
     )
 
-    create_image_wavelet_feature_dataset(
+    wavelet_feature_dataset(
         path_images=path_stego,
         class_label='stego',
         path_output='{}data/train_stego_wavelet.csv'.format(path)
