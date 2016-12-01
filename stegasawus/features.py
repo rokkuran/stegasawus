@@ -7,7 +7,8 @@ from scipy import stats
 import matplotlib.pyplot as plt
 from skimage import io
 
-#*******************************************************************************
+
+# ******************************************************************************
 def rgb_to_grey(image):
     """
     Converts RGB image to greyscale.
@@ -210,7 +211,7 @@ def wavdec_features(coeffs, tol=1):
 
     cA = coeffs[0]
     prefix = 'dwt_{}_cA'.format(n_layers)
-    cA = apply_tolerance(cA, tol) # reduce sensitivity to noise
+    cA = apply_tolerance(cA, tol)  # reduce sensitivity to noise
     f_stat = statistical_metrics(cA)
     f_stat = prefix_dict_keys(f_stat, prefix)
     features.update(f_stat)
@@ -258,7 +259,8 @@ def rgb_wavelet_features(I, tol=1):
 
 
 def create_feature_dataset(path_images, class_label, path_output,
-    f_types=['autocorrelation', 'wavelet'], image_limit=None):
+                           f_types=['autocorrelation', 'wavelet'],
+                           image_limit=None):
 
     """
     Create feature vectors from images in directory and save as csv output.
@@ -321,7 +323,7 @@ def create_feature_dataset(path_images, class_label, path_output,
     print 'image feature dataset created.'
 
 
-#*******************************************************************************
+# ******************************************************************************
 if __name__ == '__main__':
     path = '/home/rokkuran/workspace/stegasawus/'
     # path_cover = '{}images/train_catdog/cover/'.format(path)
@@ -348,7 +350,7 @@ if __name__ == '__main__':
     #     '{}data/train_ac.csv'.format(path)
     # )
 
-    #***************************************************************************
+    # **************************************************************************
     # wavelet_feature_dataset(
     #     path_images=path_cover,
     #     class_label='cover',
@@ -367,7 +369,7 @@ if __name__ == '__main__':
     #     '{}data/train_wavelet.csv'.format(path)
     # )
 
-    #***************************************************************************
+    # **************************************************************************
     create_feature_dataset(
         path_images=path_cover,
         class_label='cover',

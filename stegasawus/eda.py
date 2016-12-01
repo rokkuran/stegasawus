@@ -12,13 +12,14 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import skimage.io as io
 
-sns.set_style('whitegrid', {'axes.grid' : False})
+sns.set_style('whitegrid', {'axes.grid': False})
 
-#*******************************************************************************
+
+# ******************************************************************************
 def rgb_to_grey(image):
     return np.dot(image, [0.2989, 0.5870, 0.1140])
 
-#*******************************************************************************
+
 class ImageComparer(object):
     """"""
     def __init__(self, filepath_cover, filepath_stego):
@@ -56,7 +57,6 @@ class ImageComparer(object):
         else:
             raise Exception('reveal: invalid file type.')
 
-
     def plot_images(self):
         io.imshow(np.concatenate((self.I, self.S), axis=1))
         plt.title('Left: original cover image. Right: steganographic image.')
@@ -91,12 +91,16 @@ def generate_feature_histograms(filepath_train, bins=50, normalise=False):
 
     for feature in cols:
         label = 'cover'
-        I = train[train.label==label][feature]
-        plt.hist(I, bins=bins, color='b', alpha=0.3, edgecolor='None', label=label)
+        I = train[train.label == label][feature]
+        plt.hist(
+            I, bins=bins, color='b', alpha=0.3, edgecolor='None', label=label
+        )
 
         label = 'stego'
-        S = train[train.label=='stego'][feature]
-        plt.hist(S, bins=bins, color='r', alpha=0.3, edgecolor='None', label=label)
+        S = train[train.label == 'stego'][feature]
+        plt.hist(
+            S, bins=bins, color='r', alpha=0.3, edgecolor='None', label=label
+        )
 
         plt.legend(loc='upper right', frameon=False)
         plt.title(feature)
@@ -116,10 +120,10 @@ def generate_feature_distplots(filepath_train, normalise=False):
 
     for feature in cols:
         label = 'cover'
-        sns.distplot(train[train.label==label][feature], label=label)
+        sns.distplot(train[train.label == label][feature], label=label)
 
         label = 'stego'
-        sns.distplot(train[train.label==label][feature], label=label)
+        sns.distplot(train[train.label == label][feature], label=label)
 
         plt.legend(loc='upper right', frameon=False)
         plt.title(feature)
@@ -138,8 +142,8 @@ def generate_feature_kde(filepath_train, normalise=False):
         train[cols] = train[cols].apply(lambda x: (x - x.mean()) / x.std())
 
     for feature in cols:
-        I = train[train.label=='cover'][feature]
-        S = train[train.label=='stego'][feature]
+        I = train[train.label == 'cover'][feature]
+        S = train[train.label == 'stego'][feature]
 
         I_kde = stats.gaussian_kde(I)
         S_kde = stats.gaussian_kde(S)
@@ -159,7 +163,9 @@ def generate_feature_kde(filepath_train, normalise=False):
 
 def plot_joint_dist_hex(x, y):
     sns.set(style="ticks")
-    sns.jointplot(x, y, kind="hex", stat_func=stats.kendalltau, color="#4CB391")
+    sns.jointplot(
+        x, y, kind="hex", stat_func=stats.kendalltau, color="#4CB391"
+    )
     plt.show()
 
 
@@ -182,7 +188,7 @@ def plot_wavelet_decomposition(image, level=3):
     plt.show()
 
 
-#*******************************************************************************
+# ******************************************************************************
 if __name__ == '__main__':
     path = '/home/rokkuran/workspace/stegasawus/'
     # path_cover = '{}images/train_catdog/cover/'.format(path)
@@ -218,11 +224,10 @@ if __name__ == '__main__':
     #     "{}images/Lenna_stego.jpg".format(path)
     # )
 
-
     path_cover = '{}images/png/cover/'.format(path)
     path_stego = '{}images/png/stego/'.format(path)
 
-    filename = 'cat.2.png' # 96, 110, 224, 725
+    filename = 'cat.2.png'  # 96, 110, 224, 725
 
     z = ImageComparer(path_cover + filename, path_stego + filename)
     z.plot_rgb_components()
@@ -235,7 +240,6 @@ if __name__ == '__main__':
     #
     # z.plot_images()
     # z.plot_difference()
-
 
     # I = io.imread(path_cover + filename)
     # S = io.imread(path_stego + filename)

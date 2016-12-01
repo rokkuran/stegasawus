@@ -7,7 +7,7 @@ from stegano import lsbset
 from stegano.lsbset import generators
 
 
-#*******************************************************************************
+# ******************************************************************************
 def get_secret_message(filepath):
     """
     Read text file.
@@ -27,12 +27,13 @@ def get_secret_message(filepath):
         message = f.read()
     return message
 
+
 def hide_message_jpg(secret_message, cover_file, stego_file):
     exifHeader.hide(cover_file, stego_file, secret_message=secret_message)
 
 
 def batch_hide_message(secret_message, path_images, path_output, file_type,
-    generator=''):
+                       generator=''):
     """
     Create steganographic images containing the hidden message using the Least
     Significant Bit (LSB) algorithm.
@@ -67,7 +68,11 @@ def batch_hide_message(secret_message, path_images, path_output, file_type,
             stego = '{}{}'.format(path_output, filename)
 
             if file_type == 'png':
-                S = lsbset.hide(cover, secret_message, generator=generators.identity())
+                S = lsbset.hide(
+                    cover,
+                    secret_message=secret_message,
+                    generator=generators.identity()
+                )
                 S.save(stego)
             elif file_type == 'jpg':
                 exifHeader.hide(cover, stego, secret_message=secret_message)
@@ -109,14 +114,17 @@ def batch_png_to_jpg(path_input, path_output):
     print 'coverting images...'
     for i, filename in enumerate(os.listdir(path_input)):
         input_jpg = '{}{}'.format(path_input, filename)
-        output_png = '{}{}'.format(path_output, filename.replace('.jpg', '.png'))
+
+        fname = filename.replace('.jpg', '.png')
+        output_png = '{}{}'.format(path_output, fname)
+
         I = io.imread(input_jpg)
         io.imsave(output_png, I)
         print '{}: {}'.format(i, filename)
     print 'image conversion complete.'
 
 
-#*******************************************************************************
+# ******************************************************************************
 if __name__ == '__main__':
     # path = '/home/rokkuran/workspace/stegasawus/'
     # path_images = '{}images/train_catdog/cover/'.format(path)

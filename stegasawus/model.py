@@ -1,7 +1,6 @@
 import numpy as np
 import pandas as pd
 
-# import seaborn as sns
 import matplotlib.pyplot as plt
 from scipy import stats
 
@@ -16,13 +15,15 @@ from sklearn.model_selection import (
     learning_curve,
     ShuffleSplit,
     StratifiedShuffleSplit)
-from sklearn.pipeline import Pipeline, FeatureUnion, make_pipeline, make_union
+from sklearn.pipeline import Pipeline, FeatureUnion
 from sklearn.decomposition import PCA, KernelPCA
 from sklearn.feature_selection import SelectKBest, RFE
 
 from sklearn.naive_bayes import GaussianNB
 from sklearn.neighbors import KNeighborsClassifier
-from sklearn.linear_model import LogisticRegression, PassiveAggressiveClassifier
+from sklearn.linear_model import (
+    LogisticRegression,
+    PassiveAggressiveClassifier)
 from sklearn.svm import SVC, LinearSVC, NuSVC
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import (
@@ -39,7 +40,7 @@ from sklearn.discriminant_analysis import (
 from xgboost import XGBClassifier
 
 
-#*******************************************************************************
+# ******************************************************************************
 def model_parameter_tuning(clf, X_train, y_train, parameters, scoring, cv=5):
     gs_clf = GridSearchCV(clf, parameters, scoring=scoring, cv=cv, n_jobs=6)
     gs_clf = gs_clf.fit(X_train, y_train)
@@ -68,11 +69,12 @@ def scoring_metrics(y_pred, y_true, return_string=False):
         return scores
 
 
-#*******************************************************************************
+# ******************************************************************************
 if __name__ == '__main__':
     path = '/home/rokkuran/workspace/stegasawus'
-    path_train = '{}/data/train_ac.csv'.format(path)
+    # path_train = '{}/data/train_ac.csv'.format(path)
     # path_train = '{}/data/train_wavelet.csv'.format(path)
+    path_train = '{}/data/train.csv'.format(path)
 
     train = pd.read_csv(path_train)
 
@@ -83,7 +85,7 @@ if __name__ == '__main__':
 
     train = train.drop([target, 'image'], axis=1)
 
-    #***************************************************************************
+    # **************************************************************************
     combined_features = Pipeline([
         ('features', FeatureUnion([
             ('scaler', StandardScaler()),
@@ -100,65 +102,67 @@ if __name__ == '__main__':
         # ('kpca', KernelPCA(n_components=10)),
     ])
 
-    #***************************************************************************
+    # **************************************************************************
     classifiers = {
-        'knn': KNeighborsClassifier(
-            n_neighbors=6,
-            algorithm='ball_tree',
-            weights='distance',
-            metric='chebyshev'
-        ),
-        'knn_default': KNeighborsClassifier(),
-        'svc_rbf': SVC(
-            kernel='rbf',
-            C=50,
-            gamma=0.01,
-            tol=1e-3
-        ),
-        'svc_rbf_default': SVC(kernel='rbf'),
+        # 'knn': KNeighborsClassifier(
+        #     n_neighbors=6,
+        #     algorithm='ball_tree',
+        #     weights='distance',
+        #     metric='chebyshev'
+        # ),
+        # 'knn_default': KNeighborsClassifier(),
+        # 'svc_rbf': SVC(
+        #     kernel='rbf',
+        #     C=50,
+        #     gamma=0.01,
+        #     tol=1e-3
+        # ),
+        # 'svc_rbf_default': SVC(kernel='rbf'),
         'svc_linear': LinearSVC(
-            C=0.1,
+            C=1e3,
             loss='squared_hinge',
             penalty='l2',
             tol=1e-3
         ),
         'svc_linear_default': LinearSVC(),
-        'nusvc': NuSVC(),
-        'rf': RandomForestClassifier(
-            criterion='entropy',
-            max_depth=12,
-            min_samples_leaf=8,
-            min_samples_split=5
-        ),
-        'rf_default': RandomForestClassifier(),
-        'xgb': XGBClassifier(),
-        'adaboost': AdaBoostClassifier(),
-        'et': ExtraTreesClassifier(
-            criterion='entropy',
-            max_depth=25,
-            min_samples_leaf=5,
-            min_samples_split=5
-        ),
-        'et_default': ExtraTreesClassifier(),
-        'gbc': GradientBoostingClassifier(),
+        # 'nusvc': NuSVC(),
+        # 'rf': RandomForestClassifier(
+        #     criterion='entropy',
+        #     max_depth=12,
+        #     min_samples_leaf=8,
+        #     min_samples_split=5
+        # ),
+        # 'rf_default': RandomForestClassifier(),
+        # 'xgb': XGBClassifier(),
+        # 'adaboost': AdaBoostClassifier(),
+        # 'et': ExtraTreesClassifier(
+        #     criterion='entropy',
+        #     max_depth=25,
+        #     min_samples_leaf=5,
+        #     min_samples_split=5
+        # ),
+        # 'et_default': ExtraTreesClassifier(),
+        # 'gbc': GradientBoostingClassifier(),
         'lr_lbfgs': LogisticRegression(
-            C=1000,
-            tol=1e-3,
+            # C=1000,
+            # tol=1e-3,
+            C=3.23594105e+01,
+            tol=6.83049831e-04,
             solver='lbfgs'
         ),
         'lr_lbfgs_default': LogisticRegression(),
-        'pa': PassiveAggressiveClassifier(
-            C=0.01,
-            fit_intercept=True,
-            loss='hinge'
-        ),
-        'pa_default': PassiveAggressiveClassifier(),
-        'gnb': GaussianNB(),
-        'lda': LinearDiscriminantAnalysis(),
-        'qda': QuadraticDiscriminantAnalysis(),
+        # 'pa': PassiveAggressiveClassifier(
+        #     C=0.01,
+        #     fit_intercept=True,
+        #     loss='hinge'
+        # ),
+        # 'pa_default': PassiveAggressiveClassifier(),
+        # 'gnb': GaussianNB(),
+        # 'lda': LinearDiscriminantAnalysis(),
+        # 'qda': QuadraticDiscriminantAnalysis(),
     }
 
-    #***************************************************************************
+    # **************************************************************************
     parameters = {
         'svc_rbf': {
             'svc_rbf__C': [1, 50, 100, 250, 600, 650, 750, 800, 900, 1000],
@@ -179,7 +183,7 @@ if __name__ == '__main__':
             'knn__n_neighbors': [3, 6, 9],
             'knn__weights': ['uniform', 'distance'],
             'knn__algorithm': ['ball_tree', 'kd_tree', 'brute'],
-            'knn__metric': ['minkowski', 'euclidean', 'chebyshev', 'manhattan'],
+            'knn__metric': ['minkowski', 'euclidean', 'chebyshev', 'manhattan']
         },
         'bag_knn': {
             'bag_knn__base_estimator__n_neighbors': [3, 6, 9],
@@ -209,7 +213,7 @@ if __name__ == '__main__':
         }
     }
 
-    #***************************************************************************
+    # **************************************************************************
     # name = 'svc_linear'
     # pipeline = Pipeline([
     #     ('features', combined_features),
@@ -225,7 +229,7 @@ if __name__ == '__main__':
     #     scoring='accuracy'
     # )
 
-    #***************************************************************************
+    # **************************************************************************
     scores = []
     score_cols = [
         'classifier', 'split', 'acc', 'log_loss', 'precision', 'recall',
@@ -233,14 +237,15 @@ if __name__ == '__main__':
     ]
 
     sss = StratifiedShuffleSplit(
-        n_splits=1,
+        n_splits=5,
         test_size=0.2,
         random_state=0
     )
 
-    for i, (train_index, val_index) in enumerate(sss.split(train, y_train_binary)):
-        X_train, X_val = train.as_matrix()[train_index], train.as_matrix()[val_index]
-        y_train, y_val = y_train_binary[train_index], y_train_binary[val_index]
+    train = train.as_matrix()
+    for i, (train_idx, val_idx) in enumerate(sss.split(train, y_train_binary)):
+        X_train, X_val = train[train_idx], train[val_idx]
+        y_train, y_val = y_train_binary[train_idx], y_train_binary[val_idx]
 
         for name, clf in classifiers.iteritems():
 
