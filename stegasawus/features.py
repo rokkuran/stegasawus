@@ -188,7 +188,7 @@ def apply_tolerance(x, tol):
 def wavdec_features(coeffs, tol=1):
     """
     Calculated the statistical features on the components of a mulitlevel 2D
-    discrete wavelet transformation.
+    discrete wavelet decomposition.
 
     Parameters
     ----------
@@ -230,7 +230,7 @@ def wavdec_features(coeffs, tol=1):
 def rgb_wavelet_features(I, tol=1):
     """
     For each RGB channel, calculates the statistical features the components of
-    a mulitlevel 2D discrete wavelet transformation.
+    a mulitlevel 2D discrete wavelet decomposition.
 
     Parameters
     ----------

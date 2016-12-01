@@ -9,6 +9,20 @@ from stegano.lsbset import generators
 
 #*******************************************************************************
 def get_secret_message(filepath):
+    """
+    Read text file.
+
+    Parameters
+    ----------
+    filepath : string
+        Input file.
+
+    Returns
+    -------
+    message : string
+        Contents of file.
+
+    """
     with open(filepath, 'rb') as f:
         message = f.read()
     return message
@@ -19,8 +33,30 @@ def hide_message_jpg(secret_message, cover_file, stego_file):
 
 def batch_hide_message(secret_message, path_images, path_output, file_type,
     generator=''):
-    """"""
-    secret_message *= 10
+    """
+    Create steganographic images containing the hidden message using the Least
+    Significant Bit (LSB) algorithm.
+
+    Parameters
+    ----------
+    secret_message : string
+        Hidden message to embed in image.
+    path_images : string
+        Input image directory.
+    path_output : string
+        Output directroy for steganographic images.
+    file_type : string
+        'png' - embeds message in rgb pixels.
+        'jpg' - embeds message in discrete cosine coefficients.
+    generator : string, optional
+        Specify the embedding location generator.
+
+    Returns
+    -------
+    None
+        Steganographic images saved in path_output.
+
+    """
 
     print 'encoding images...'
     file_type = file_type.lower()
@@ -114,7 +150,7 @@ if __name__ == '__main__':
     # secret_message = 'pants pants underpants...'
     # batch_hide_message_png(secret_message, path_images, path_output)
     batch_hide_message(
-        secret_message=secret_message,
+        secret_message=secret_message*10,
         path_images=path_images,
         path_output=path_output,
         file_type='png'
