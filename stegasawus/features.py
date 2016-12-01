@@ -52,20 +52,37 @@ def statistical_metrics(x):
 
 
 def prefix_dict_keys(d, prefix):
+    """
+    Adds prefix to dict keys.
+
+    Parameters
+    ----------
+    d : dict
+        Dictionary to modify.
+    prefix : string
+        Prefix to add to dict key.
+
+    Returns
+    -------
+    Modified dict d.
+
+    """
     return {'{}_{}'.format(prefix, k): v for k, v in d.items()}
 
 
-def autocorrelation_features(I, lags=((1, 0), (0, 1))):
+def autocorrelation_features(I, lags=((1, 0), (0, 1), (1, 1))):
     """
     Calculate the autocorrelation statistical features (specified in
     statistical_metrics function) from a 2D image array for the specified lags.
 
     Parameters
     ----------
-    I : 2D array
+    I : numpy.ndarray
         Array from a greyscale image or an individual colour channel.
-    lags : array of coordinate shift items
-        Defaults to 1 pixel vertical and horizontal lags - ((1, 0), (0, 1)).
+    lags : array_like, optional
+        Pixel vertical and horizontal coordinate shift lags.
+            e.g. ((1, 0), (0, 1), (1, 1)) - default
+            e.g. [(1, 0), (0, 1), (1, 1), (1, 2), (2, 1), (2, 2)]
 
     Returns
     -------
@@ -89,7 +106,7 @@ def autocorrelation_features(I, lags=((1, 0), (0, 1))):
     return features
 
 
-def rgb_autocorrelation_features(I, lags=((1, 0), (0, 1))):
+def rgb_autocorrelation_features(I, lags=((1, 0), (0, 1), (1, 1))):
     """
     Calculate the autocorrelation statistical features of a RGB image
     array (m, n, 3) for the specified lags.
@@ -98,8 +115,10 @@ def rgb_autocorrelation_features(I, lags=((1, 0), (0, 1))):
     ----------
     I : array
         RGB image array (m, n, 3).
-    lags : array of coordinate shift items
-        Defaults to 1 pixel vertical and horizontal lags - ((1, 0), (0, 1)).
+    lags : array_like, options
+        Pixel vertical and horizontal coordinate shift lags.
+            e.g. ((1, 0), (0, 1), (1, 1)) - default
+            e.g. [(1, 0), (0, 1), (1, 1), (1, 2), (2, 1), (2, 2)]
 
     Returns
     -------
@@ -117,51 +136,49 @@ def rgb_autocorrelation_features(I, lags=((1, 0), (0, 1))):
     return features
 
 
-def autocorrelation_feature_dataset(path_images, class_label, path_output,
-    image_limit=None):
-    """Create autocorrelation feature set from images."""
+def concatenate_feature_sets(filepath_cover, filepath_stego, filepath_output):
+    """
+    Concatenates two feature csv files.
 
-    print 'creating image feature dataset...'
+    Parameters
+    ----------
+    filepath_cover : string
+        Filepath to cover image feature set.
+    filepath_stego : string
+        Filepath to steganographic image feature set.
+    filepath_output : string
+        Output filepath.
 
-    dataset = list()
-    for i, filename in enumerate(os.listdir(path_images)):
-        fname = '{}{}'.format(path_images, filename)
-        image = io.imread(fname)
+    Returns
+    -------
+    Concatenated dataset.
 
-        lags = ((1, 0), (0, 1), (1, 1), (1, 2), (2, 2), (2, 2))
-        features = rgb_autocorrelation_features(image, lags=lags)
-        if i == 0:
-            feature_names = features.keys()
-
-        row = [filename, class_label]
-        for feature in feature_names:
-            row.append(features[feature])
-        dataset.append(row)
-
-        if i % 250 == 0:
-            print '{} images processed'.format(i)
-
-        if image_limit:
-            if i > image_limit:
-                break
-
-    df = pd.DataFrame(dataset, columns=['image', 'label'] + feature_names)
-    df.to_csv(path_output, index=False)
-
-    print 'image feature dataset created.'
-
-
-def create_training_set(filepath_cover, filepath_stego, path_output):
-    """"""
+    """
     train_cover = pd.read_csv(filepath_cover)
     train_stego = pd.read_csv(filepath_stego)
     train = pd.concat([train_cover, train_stego])
-    train.to_csv(path_output, index=False)
+    train.to_csv(filepath_output, index=False)
     return train
 
 
 def apply_tolerance(x, tol):
-    x_tol = abs(x) > tol
+    """
+    Applies absolute value filter for given tolerance.
+
+    Parameters
+    ----------
+    x : numpy.ndarray
+        Input data.
+    tol : int, float
+        Tolerance.
+
+    Returns
+    -------
+    Filtered array where |x| >= tol.
+    If no values are above the tolerance np.array([0]) is returned.
+
+    """
+    x_tol = abs(x) >= tol
     if x_tol.any():
         return x[x_tol]
     else:
@@ -169,7 +186,24 @@ def apply_tolerance(x, tol):
 
 
 def wavdec_features(coeffs, tol=1):
-    """"""
+    """
+    Calculated the statistical features on the components of a mulitlevel 2D
+    discrete wavelet transformation.
+
+    Parameters
+    ----------
+    coeffs : list
+        n level coefficients from pywt.wavedec2
+        [cAn, (cHn, cVn, cDn), ... (cH1, cV1, cD1)]
+    tol : int, float
+        Tolerance to apply to individual coefficient arrays.
+
+    Returns
+    -------
+    features : dict
+        Feature vector of statistical components in dictionary form.
+
+    """
     n_layers = len(coeffs) - 1
 
     features = {}
@@ -194,7 +228,23 @@ def wavdec_features(coeffs, tol=1):
 
 
 def rgb_wavelet_features(I, tol=1):
-    """"""
+    """
+    For each RGB channel, calculates the statistical features the components of
+    a mulitlevel 2D discrete wavelet transformation.
+
+    Parameters
+    ----------
+    I : numpy.ndarray
+        RGB image array.
+    tol : int, float
+        Tolerance to apply to individual coefficient arrays.
+
+    Returns
+    -------
+    features : dict
+        Feature vector of statistical components in dictionary form.
+
+    """
     features = {}
     m, n, _ = I.shape
 
@@ -205,38 +255,6 @@ def rgb_wavelet_features(I, tol=1):
         features.update(f_wavelet)
 
     return features
-
-
-def wavelet_feature_dataset(path_images, class_label, path_output,
-    image_limit=None):
-
-    print 'creating image feature dataset...'
-
-    dataset = list()
-    for i, filename in enumerate(os.listdir(path_images)):
-        fname = '{}{}'.format(path_images, filename)
-        image = io.imread(fname)
-
-        features = rgb_wavelet_features(image)
-        if i == 0:
-            feature_names = features.keys()
-
-        row = [filename, class_label]
-        for feature in feature_names:
-            row.append(features[feature])
-        dataset.append(row)
-
-        if i % 250 == 0:
-            print '{} images processed'.format(i)
-
-        if image_limit:
-            if i > image_limit:
-                break
-
-    df = pd.DataFrame(dataset, columns=['image', 'label'] + feature_names)
-    df.to_csv(path_output, index=False)
-
-    print 'image feature dataset created.'
 
 
 def create_feature_dataset(path_images, class_label, path_output,
@@ -324,7 +342,7 @@ if __name__ == '__main__':
     #     path_output='{}data/train_stego_ac.csv'.format(path)
     # )
 
-    # create_training_set(
+    # concatenate_feature_sets(
     #     '{}data/train_cover_ac.csv'.format(path),
     #     '{}data/train_stego_ac.csv'.format(path),
     #     '{}data/train_ac.csv'.format(path)
@@ -343,7 +361,7 @@ if __name__ == '__main__':
     #     path_output='{}data/train_stego_wavelet.csv'.format(path)
     # )
     #
-    # create_training_set(
+    # concatenate_feature_sets(
     #     '{}data/train_cover_wavelet.csv'.format(path),
     #     '{}data/train_stego_wavelet.csv'.format(path),
     #     '{}data/train_wavelet.csv'.format(path)
@@ -364,7 +382,7 @@ if __name__ == '__main__':
         f_types=['autocorrelation', 'wavelet']
     )
 
-    create_training_set(
+    concatenate_feature_sets(
         '{}data/train_cover.csv'.format(path),
         '{}data/train_stego.csv'.format(path),
         '{}data/train.csv'.format(path)
