@@ -17,13 +17,46 @@ sns.set_style('whitegrid', {'axes.grid': False})
 
 # ******************************************************************************
 def rgb_to_grey(image):
+    """
+    Converts RGB image array to greyscale.
+
+    Parameters
+    ----------
+    image : numpy.ndarray
+        RGB image array with dimensions (m, n, 3).
+
+    Returns
+    -------
+    Greyscale image of dimensions (m, n)
+
+    """
     return np.dot(image, [0.2989, 0.5870, 0.1140])
 
 
-class ImageComparer(object):
-    """"""
+class JointImageAnalyser(object):
+    """
+    Image comparison class for use with original 'cover' image (I) and the
+    steganographic image (S).
+
+    Parameters
+    ----------
+    filepath_cover : string filepath
+        Filepath for cover image.
+    filepath_stego : string filepath
+        Filepath for steganographic image.
+
+    Attributes
+    ----------
+    I : numpy.ndarray
+        RGB array for cover image.
+    S : numpy.ndarray
+        RGB array for steganographic image.
+    diff : numpy.ndarray
+        Difference between cover and steganographic image RGB arrays: (I - S).
+
+    """
     def __init__(self, filepath_cover, filepath_stego):
-        super(ImageComparer, self).__init__()
+        super(JointImageAnalyser, self).__init__()
         self._filepath_cover = filepath_cover
         self._filepath_stego = filepath_stego
 
@@ -42,7 +75,6 @@ class ImageComparer(object):
     def diff(self):
         return self.I - self.S
 
-    @property
     def print_details(self):
         print 'cover_image: %s' % self._filepath_cover
         print 'stego_image: %s' % self._filepath_stego
@@ -50,6 +82,22 @@ class ImageComparer(object):
         print 'sum of absolute image difference = %s' % a
 
     def reveal(self, generator):
+        """
+        Reveal hidden message in steganographic image using the generator
+        specified.
+
+        Parameters
+        ----------
+        generator : function
+            Embedding location generator function from custom functon or
+            stegano.lsbset.generators. Message will not be revealed unless the
+            correct generator is used.
+
+        Returns
+        -------
+        Secret message :o
+
+        """
         if self._file_type == 'jpg':
             return exifHeader.reveal(self._filepath_stego)
         elif self._file_type == 'png':
@@ -58,13 +106,18 @@ class ImageComparer(object):
             raise Exception('reveal: invalid file type.')
 
     def plot_images(self):
+        """
+        Plot cover and steganographic RGB images side by side.
+        """
         io.imshow(np.concatenate((self.I, self.S), axis=1))
         plt.title('Left: original cover image. Right: steganographic image.')
         plt.grid(False)
         plt.show()
 
     def plot_rgb_components(self):
-        """"""
+        """
+        Plot RGB colour channels for both cover and steganographic images.
+        """
         f, axarr = plt.subplots(nrows=2, ncols=3)
         for i, image_type in enumerate(['Cover', 'Stego']):
             for j, colour in enumerate(['Red', 'Green', 'Blue']):
@@ -75,13 +128,33 @@ class ImageComparer(object):
         plt.show()
 
     def plot_difference(self, absolute=False):
+        """
+        Plot difference between cover and steganographic image.
+        """
         io.imshow(self.diff if not absolute else abs(self.diff))
         plt.grid(False)
         plt.show()
 
 
 def generate_feature_histograms(filepath_train, bins=50, normalise=False):
-    """"""
+    """
+    Generate batch of comparison histograms of cover and steganographic image
+    features.
+
+    Parameters
+    ----------
+    filepath_train : string
+        Filepath for training csv file with image features.
+    bins : int, default : 50
+        Number of bins for histograms.
+    normalise : bool, default : False
+        Apply normalisation to image features.
+
+    Returns
+    -------
+    Set of comparitive histograms.
+
+    """
     train = pd.read_csv(filepath_train)
 
     cols = [x for x in train.columns if x not in ('label', 'image')]
@@ -104,6 +177,8 @@ def generate_feature_histograms(filepath_train, bins=50, normalise=False):
 
         plt.legend(loc='upper right', frameon=False)
         plt.title(feature)
+
+        # TODO: change figure output path to argument.
         plt.savefig('{}/output/{}_bins{}.png'.format(path, feature, bins))
         print feature
         plt.close()
@@ -170,6 +245,21 @@ def plot_joint_dist_hex(x, y):
 
 
 def plot_wavelet_decomposition(image, level=3):
+    """
+    Plot of 2D wavelet decompositions for given number of levels.
+
+    Parameters
+    ----------
+    image : numpy.ndarray
+        Single channel image with dimensions (m, n).
+    level : int, default : 3
+        Decomposition level.
+
+    Returns
+    -------
+    Shows plot of 2D wavelet decomposition.
+
+    """
     coeffs = pywt.wavedec2(image, wavelet='haar', level=level)
     for i, (cH, cV, cD) in enumerate(coeffs[1:]):
         if i == 0:
@@ -190,66 +280,4 @@ def plot_wavelet_decomposition(image, level=3):
 
 # ******************************************************************************
 if __name__ == '__main__':
-    path = '/home/rokkuran/workspace/stegasawus/'
-    # path_cover = '{}images/train_catdog/cover/'.format(path)
-    # path_stego = '{}images/stego/catdog/'.format(path)
-
-    # path_cover = '{}images/train/cropped/'.format(path)
-    # path_stego = '{}images/stego/paintings/'.format(path)
-
-    # filename = 'cat.698.jpg'
-    # filename = 'cat.445.jpg'
-    # filename = '10.jpg'
-    # plot_images(filename, path_cover, path_stego)
-
-    # Z = ImageComparer(path_cover + filename, path_stego + filename)
-    # Z = ImageComparer(
-    #     '/home/rokkuran/workspace/stegasawus/images/Lenna.jpg',
-    #     '/home/rokkuran/workspace/stegasawus/images/image.jpg'
-    # )
-
-    # Z.print_details()
-    # if np.sum(abs(Z.diff)) > 0:
-    #     Z.plot_images()
-    #     Z.plot_difference()
-
-    # exifHeader.hide(
-    #     "{}images/Lenna.jpg".format(path),
-    #     "{}images/Lenna_stego.jpg".format(path),
-    #     secret_message="Hello world!"
-    # )
-    #
-    # Z = ImageComparer(
-    #     "{}images/Lenna.jpg".format(path),
-    #     "{}images/Lenna_stego.jpg".format(path)
-    # )
-
-    path_cover = '{}images/png/cover/'.format(path)
-    path_stego = '{}images/png/stego/'.format(path)
-
-    filename = 'cat.2.png'  # 96, 110, 224, 725
-
-    z = ImageComparer(path_cover + filename, path_stego + filename)
-    z.plot_rgb_components()
-    # plot_wavelet_decomposition(z.I[:, :, 0])
-    # z.print_details()
-    # # print z.reveal(generators.eratosthenes())
-    # print z.reveal(generators.identity())
-    # # print z.reveal(generators.Dead_Man_Walking())
-    # # print z.reveal(generators.syracuse())
-    #
-    # z.plot_images()
-    # z.plot_difference()
-
-    # I = io.imread(path_cover + filename)
-    # S = io.imread(path_stego + filename)
-
-    # generate_feature_distplots(
-    # # generate_feature_histograms(
-    #     # '{}data/train.csv'.format(path),
-    #     '{}data/train_wavelet.csv'.format(path),
-    #     # bins=50,
-    #     normalise=False
-    # )
-    # generate_log_feature_histograms('{}data/train.csv'.format(path), bins=50)
-    # generate_feature_kde('{}data/train.csv'.format(path))
+    pass

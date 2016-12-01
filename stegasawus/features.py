@@ -80,9 +80,8 @@ def autocorrelation_features(I, lags=((1, 0), (0, 1), (1, 1))):
     ----------
     I : numpy.ndarray
         Array from a greyscale image or an individual colour channel.
-    lags : array_like, optional
+    lags : array_like, default : ((1, 0), (0, 1), (1, 1))
         Pixel vertical and horizontal coordinate shift lags.
-            e.g. ((1, 0), (0, 1), (1, 1)) - default
             e.g. [(1, 0), (0, 1), (1, 1), (1, 2), (2, 1), (2, 2)]
 
     Returns
@@ -116,9 +115,8 @@ def rgb_autocorrelation_features(I, lags=((1, 0), (0, 1), (1, 1))):
     ----------
     I : array
         RGB image array (m, n, 3).
-    lags : array_like, options
+    lags : array_like, default : ((1, 0), (0, 1), (1, 1))
         Pixel vertical and horizontal coordinate shift lags.
-            e.g. ((1, 0), (0, 1), (1, 1)) - default
             e.g. [(1, 0), (0, 1), (1, 1), (1, 2), (2, 1), (2, 2)]
 
     Returns
@@ -196,7 +194,7 @@ def wavdec_features(coeffs, tol=1):
     coeffs : list
         n level coefficients from pywt.wavedec2
         [cAn, (cHn, cVn, cDn), ... (cH1, cV1, cD1)]
-    tol : int, float
+    tol : int, float, default : 1
         Tolerance to apply to individual coefficient arrays.
 
     Returns
@@ -237,7 +235,7 @@ def rgb_wavelet_features(I, tol=1):
     ----------
     I : numpy.ndarray
         RGB image array.
-    tol : int, float
+    tol : int, float, default : 1
         Tolerance to apply to individual coefficient arrays.
 
     Returns
@@ -273,12 +271,11 @@ def create_feature_dataset(path_images, class_label, path_output,
         Class label used in label column of output.
     path_output : directory path string
         Output directory for csv file.
-    f_types : array_like, optional
-        Specify the feature types:
-            - 'autocorrelation'
-            - 'wavelet'
+    f_types : array_like, default : ['autocorrelation', 'wavelet']
+        Specify the feature types to include as list of strings:
+        {'autocorrelation', 'wavelet'}
         Default: ['autocorrelation', 'wavelet']
-    image_limit : int, optional
+    image_limit : int, default : None
         Number of images in directory to process.
 
     Returns
@@ -325,67 +322,4 @@ def create_feature_dataset(path_images, class_label, path_output,
 
 # ******************************************************************************
 if __name__ == '__main__':
-    path = '/home/rokkuran/workspace/stegasawus/'
-    # path_cover = '{}images/train_catdog/cover/'.format(path)
-    # path_stego = '{}images/stego/catdog/'.format(path)
-
-    path_cover = '{}images/png/cover/'.format(path)
-    path_stego = '{}images/png/stego/'.format(path)
-
-    # autocorrelation_feature_dataset(
-    #     path_images=path_cover,
-    #     class_label='cover',
-    #     path_output='{}data/train_cover_ac.csv'.format(path)
-    # )
-    #
-    # autocorrelation_feature_dataset(
-    #     path_images=path_stego,
-    #     class_label='stego',
-    #     path_output='{}data/train_stego_ac.csv'.format(path)
-    # )
-
-    # concatenate_feature_sets(
-    #     '{}data/train_cover_ac.csv'.format(path),
-    #     '{}data/train_stego_ac.csv'.format(path),
-    #     '{}data/train_ac.csv'.format(path)
-    # )
-
-    # **************************************************************************
-    # wavelet_feature_dataset(
-    #     path_images=path_cover,
-    #     class_label='cover',
-    #     path_output='{}data/train_cover_wavelet.csv'.format(path)
-    # )
-    #
-    # wavelet_feature_dataset(
-    #     path_images=path_stego,
-    #     class_label='stego',
-    #     path_output='{}data/train_stego_wavelet.csv'.format(path)
-    # )
-    #
-    # concatenate_feature_sets(
-    #     '{}data/train_cover_wavelet.csv'.format(path),
-    #     '{}data/train_stego_wavelet.csv'.format(path),
-    #     '{}data/train_wavelet.csv'.format(path)
-    # )
-
-    # **************************************************************************
-    create_feature_dataset(
-        path_images=path_cover,
-        class_label='cover',
-        path_output='{}data/train_cover.csv'.format(path),
-        f_types=['autocorrelation', 'wavelet']
-    )
-
-    create_feature_dataset(
-        path_images=path_stego,
-        class_label='stego',
-        path_output='{}data/train_stego.csv'.format(path),
-        f_types=['autocorrelation', 'wavelet']
-    )
-
-    concatenate_feature_sets(
-        '{}data/train_cover.csv'.format(path),
-        '{}data/train_stego.csv'.format(path),
-        '{}data/train.csv'.format(path)
-    )
+    pass

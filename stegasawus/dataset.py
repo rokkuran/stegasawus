@@ -126,46 +126,4 @@ def batch_png_to_jpg(path_input, path_output):
 
 # ******************************************************************************
 if __name__ == '__main__':
-    # path = '/home/rokkuran/workspace/stegasawus/'
-    # path_images = '{}images/train_catdog/cover/'.format(path)
-    # path_output = '{}images/stego/catdog/'.format(path)
-    # secret_message = get_secret_message('{}message.txt'.format(path))
-    # batch_hide_message_jpg(secret_message, path_images, path_output)
-    # batch_hide_message(secret_message, path_images, path_output, 'jpg')
-
-    # exifHeader.hide(
-    #     "{}images/Lenna.jpg".format(path),
-    #     "{}images/Lenna_stego.jpg".format(path),
-    #     secret_message=secret_message
-    # )
-
-    # path_cover = '{}images/train/cropped/'.format(path)
-    # path_stego = '{}images/stego/paintings/'.format(path)
-    # secret_message = get_secret_message('{}message.txt'.format(path))
-    # batch_hide_message_jpg(secret_message, path_cover, path_stego)
-
-    # path = '/home/rokkuran/workspace/stegasawus/'
-    # path_input = '{}images/train_catdog/cover/'.format(path)
-    # # path_input = '{}images/png/cover/'.format(path)
-    # path_output = '{}images/png/cover/'.format(path)
-    # # path_output = '{}images/png/stego/'.format(path)
-    # batch_png_to_jpg(path_input, path_output)
-
-    path = '/home/rokkuran/workspace/stegasawus/'
-    path_images = '{}images/png/cover/'.format(path)
-    path_output = '{}images/png/stego/'.format(path)
-    secret_message = get_secret_message('{}message.txt'.format(path))
-    # secret_message = 'pants pants underpants...'
-    # batch_hide_message_png(secret_message, path_images, path_output)
-    batch_hide_message(
-        secret_message=secret_message*10,
-        path_images=path_images,
-        path_output=path_output,
-        file_type='png'
-        # generator=generators.eratosthenes()
-        # generator=generators.identity(),
-        # generator=generators.Dead_Man_Walking()
-        # generator=generators.fibonacci()
-        # generator=generators.syracuse()
-        # generator=generators.log_gen()
-    )
+    pass
