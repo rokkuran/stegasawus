@@ -1,5 +1,5 @@
-import numpy
-import pandas
+import numpy as np
+import pandas as pd
 import pywt
 
 from stegano import exifHeader
@@ -12,12 +12,11 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import skimage.io as io
 
-# sns.set_style("white")
-sns.set_style("whitegrid", {'axes.grid' : False})
+sns.set_style('whitegrid', {'axes.grid' : False})
 
 #*******************************************************************************
 def rgb_to_grey(image):
-    return numpy.dot(image, [0.2989, 0.5870, 0.1140])
+    return np.dot(image, [0.2989, 0.5870, 0.1140])
 
 #*******************************************************************************
 class ImageComparer(object):
@@ -42,7 +41,13 @@ class ImageComparer(object):
     def diff(self):
         return self.I - self.S
 
-    # @ property
+    @property
+    def print_details(self):
+        print 'cover_image: %s' % self._filepath_cover
+        print 'stego_image: %s' % self._filepath_stego
+        a = np.sum(abs(self.diff))
+        print 'sum of absolute image difference = %s' % a
+
     def reveal(self, generator):
         if self._file_type == 'jpg':
             return exifHeader.reveal(self._filepath_stego)
@@ -51,49 +56,22 @@ class ImageComparer(object):
         else:
             raise Exception('reveal: invalid file type.')
 
-    def print_details(self):
-        print 'cover_image: %s' % self._filepath_cover
-        print 'stego_image: %s' % self._filepath_stego
-        # print 'message length = %s' % len(self.reveal)
-        a = numpy.sum(abs(self.diff))
-        print 'sum of absolute image difference = %s' % a
 
     def plot_images(self):
-        io.imshow(numpy.concatenate((self.I, self.S), axis=1))
+        io.imshow(np.concatenate((self.I, self.S), axis=1))
         plt.title('Left: original cover image. Right: steganographic image.')
         plt.grid(False)
         plt.show()
 
     def plot_rgb_components(self):
         """"""
-        # I_rgb = numpy.concatenate([self.I[:, :, c] for c in xrange(3)], axis=1)
-        # S_rgb = numpy.concatenate([self.S[:, :, c] for c in xrange(3)], axis=1)
-        # IS_rgb = numpy.concatenate((I_rgb, S_rgb), axis=0)
-        # io.imshow(IS_rgb)
-
         f, axarr = plt.subplots(nrows=2, ncols=3)
-
-        axarr[0, 0].imshow(self.I[:, :, 0], cmap='Reds')
-        axarr[0, 0].set_title('cover red')
-        axarr[0, 1].imshow(self.I[:, :, 1], cmap='Greens')
-        axarr[0, 1].set_title('cover green')
-        axarr[0, 2].imshow(self.I[:, :, 2], cmap='Blues')
-        axarr[0, 2].set_title('cover blue')
-        axarr[1, 0].imshow(self.S[:, :, 0], cmap='Reds')
-        axarr[1, 0].set_title('stego red')
-        axarr[1, 1].imshow(self.S[:, :, 1], cmap='Greens')
-        axarr[1, 1].set_title('stego green')
-        axarr[1, 2].imshow(self.S[:, :, 2], cmap='Blues')
-        axarr[1, 2].set_title('stego blue')
-        # axarr[1, 0].imshow(self.I[:, :, 0], cmap='green')
-        # axarr[1, 0].set_title('Axis [1,0]')
-        # axarr[1, 1].scatter(x, y ** 2)
-        # axarr[1, 1].set_title('Axis [1,1]')
-
-        # title = '1st row: RGB components of cover image. | '
-        # title += '2nd row: RGB components of stego image.'
-        # plt.title(title)
-        # plt.grid(False)
+        for i, image_type in enumerate(['Cover', 'Stego']):
+            for j, colour in enumerate(['Red', 'Green', 'Blue']):
+                axarr[i, j].imshow(self.I[:, :, j], cmap='{}s'.format(colour))
+                axarr[i, j].set_title('{} {}'.format(image_type, colour))
+                axarr[i, j].set_xticklabels([])
+                axarr[i, j].set_yticklabels([])
         plt.show()
 
     def plot_difference(self, absolute=False):
@@ -104,7 +82,7 @@ class ImageComparer(object):
 
 def generate_feature_histograms(filepath_train, bins=50, normalise=False):
     """"""
-    train = pandas.read_csv(filepath_train)
+    train = pd.read_csv(filepath_train)
 
     cols = [x for x in train.columns if x not in ('label', 'image')]
 
@@ -129,7 +107,7 @@ def generate_feature_histograms(filepath_train, bins=50, normalise=False):
 
 def generate_feature_distplots(filepath_train, normalise=False):
     """"""
-    train = pandas.read_csv(filepath_train)
+    train = pd.read_csv(filepath_train)
 
     cols = [x for x in train.columns if x not in ('label', 'image')]
 
@@ -152,7 +130,7 @@ def generate_feature_distplots(filepath_train, normalise=False):
 
 def generate_feature_kde(filepath_train, normalise=False):
     """"""
-    train = pandas.read_csv(filepath_train)
+    train = pd.read_csv(filepath_train)
 
     cols = [x for x in train.columns if x not in ('label', 'image')]
 
@@ -166,8 +144,8 @@ def generate_feature_kde(filepath_train, normalise=False):
         I_kde = stats.gaussian_kde(I)
         S_kde = stats.gaussian_kde(S)
 
-        x = numpy.hstack((I, S))
-        xs = numpy.linspace(min(x), max(x), 250)
+        x = np.hstack((I, S))
+        xs = np.linspace(min(x), max(x), 250)
 
         plt.plot(xs, I_kde(xs), color='b', lw=1.5, alpha=0.3, label='cover')
         plt.plot(xs, S_kde(xs), color='r', lw=1.5, alpha=0.3, label='stego')
@@ -189,13 +167,13 @@ def plot_wavelet_decomposition(image, level=3):
     coeffs = pywt.wavedec2(image, wavelet='haar', level=level)
     for i, (cH, cV, cD) in enumerate(coeffs[1:]):
         if i == 0:
-            cAcH = numpy.concatenate((coeffs[0], cH), axis=1)
-            cVcD = numpy.concatenate((cV, cD), axis=1)
-            plot_image = numpy.concatenate((cAcH, cVcD), axis=0)
+            cAcH = np.concatenate((coeffs[0], cH), axis=1)
+            cVcD = np.concatenate((cV, cD), axis=1)
+            plot_image = np.concatenate((cAcH, cVcD), axis=0)
         else:
-            plot_image = numpy.concatenate((plot_image, cH), axis=1)
-            cVcD = numpy.concatenate((cV, cD), axis=1)
-            plot_image = numpy.concatenate((plot_image, cVcD), axis=0)
+            plot_image = np.concatenate((plot_image, cH), axis=1)
+            cVcD = np.concatenate((cV, cD), axis=1)
+            plot_image = np.concatenate((plot_image, cVcD), axis=0)
 
     plt.grid(False)
     # io.imshow(abs(plot_image), cmap='gray')
@@ -225,7 +203,7 @@ if __name__ == '__main__':
     # )
 
     # Z.print_details()
-    # if numpy.sum(abs(Z.diff)) > 0:
+    # if np.sum(abs(Z.diff)) > 0:
     #     Z.plot_images()
     #     Z.plot_difference()
 
@@ -247,6 +225,7 @@ if __name__ == '__main__':
     filename = 'cat.2.png' # 96, 110, 224, 725
 
     z = ImageComparer(path_cover + filename, path_stego + filename)
+    z.plot_rgb_components()
     # plot_wavelet_decomposition(z.I[:, :, 0])
     # z.print_details()
     # # print z.reveal(generators.eratosthenes())

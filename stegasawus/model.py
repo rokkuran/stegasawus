@@ -1,5 +1,5 @@
-import numpy
-import pandas
+import numpy as np
+import pandas as pd
 
 # import seaborn as sns
 import matplotlib.pyplot as plt
@@ -71,10 +71,10 @@ def scoring_metrics(y_pred, y_true, return_string=False):
 #*******************************************************************************
 if __name__ == '__main__':
     path = '/home/rokkuran/workspace/stegasawus'
-    # path_train = '{}/data/train.csv'.format(path)
-    path_train = '{}/data/train_wavelet.csv'.format(path)
+    path_train = '{}/data/train_ac.csv'.format(path)
+    # path_train = '{}/data/train_wavelet.csv'.format(path)
 
-    train = pandas.read_csv(path_train)
+    train = pd.read_csv(path_train)
 
     # target and index preprocessing
     target = 'label'
@@ -166,7 +166,7 @@ if __name__ == '__main__':
             'svc_rbf__gamma': [0.01, 0.1, 0.25, 0.5, 0.75],
         },
         'svc_linear': {
-            'svc_linear__C': numpy.logspace(-2, 3, 6),
+            'svc_linear__C': np.logspace(-2, 3, 6),
             'svc_linear__tol': [1e-3, 1e-4],
         },
         'nusvc': {
@@ -187,7 +187,7 @@ if __name__ == '__main__':
             'bag_knn__max_features': [0.1, 0.25, 0.5, 0.75, 0.90],
         },
         'lr_lbfgs': {
-            'lr_lbfgs__C': numpy.logspace(-3, 4, 8),
+            'lr_lbfgs__C': np.logspace(-3, 4, 8),
             'lr_lbfgs__tol': [1e-3, 1e-4]
         },
         'rf': {
@@ -203,7 +203,7 @@ if __name__ == '__main__':
             'et__min_samples_split': [2, 3, 5, 8, 10],
         },
         'pa': {
-            'pa__C': numpy.logspace(-3, 4, 8),
+            'pa__C': np.logspace(-3, 4, 8),
             'pa__fit_intercept': [False, True],
             'pa__loss': ['hinge', 'squared_hinge'],
         }
@@ -257,7 +257,7 @@ if __name__ == '__main__':
             print ps
             scores.append([name, i] + m)
 
-    scores = pandas.DataFrame(scores, columns=score_cols)
+    scores = pd.DataFrame(scores, columns=score_cols)
     scores = scores.sort_values(
         by=['acc', 'f1', 'roc_auc'],
         ascending=False
