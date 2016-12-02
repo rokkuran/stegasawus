@@ -75,8 +75,6 @@ def scoring_metrics(y_pred, y_true, return_string=False):
 # ******************************************************************************
 if __name__ == '__main__':
     path = '/home/rokkuran/workspace/stegasawus'
-    # path_train = '{}/data/train_ac.csv'.format(path)
-    # path_train = '{}/data/train_wavelet.csv'.format(path)
     path_train = '{}/data/train.csv'.format(path)
 
     train = pd.read_csv(path_train)
@@ -193,11 +191,7 @@ if __name__ == '__main__':
         'f1', 'roc_auc'
     ]
 
-    ss = ShuffleSplit(
-        n_splits=5,
-        test_size=0.2,
-        random_state=0
-    )
+    ss = ShuffleSplit(n_splits=5, test_size=0.2, random_state=0)
 
     train = train.as_matrix()
     for i, (train_idx, val_idx) in enumerate(ss.split(train, y_train_binary)):
