@@ -29,6 +29,19 @@ def get_secret_message(filepath):
 
 
 def hide_message_jpg(secret_message, cover_file, stego_file):
+    """
+    Hide message in jpg file.
+
+    Parameters
+    ----------
+    secret_message : string
+        Message to hide.
+    cover_file : string, filepath
+        Input image to hide message in.
+    stego_file : string, filepath
+        Output image with hidden message embedded.
+
+    """
     exifHeader.hide(cover_file, stego_file, secret_message=secret_message)
 
 
@@ -93,6 +106,20 @@ def batch_hide_message_rnd_generator():
 
 
 def crop_images(path_images, path_output, dimensions=(256, 256)):
+    """
+    Batch crop images from top left hand corner to dimensions specified. Skips
+    images where dimensions are incompatible.
+
+    Parameters
+    ----------
+    path_images : string, directroy path
+        Directory with image set to crop.
+    path_output : string, directroy path
+        Directory for output of cropped images.
+    dimensions : array_like
+        Dimensions to crop image to: (n, m) array.
+
+    """
     print 'cropping images...'
     m, n = dimensions
     for i, filename in enumerate(os.listdir(path_images)):
@@ -111,6 +138,9 @@ def crop_images(path_images, path_output, dimensions=(256, 256)):
 
 
 def batch_png_to_jpg(path_input, path_output):
+    """
+    Convert jpg images to png.
+    """
     print 'coverting images...'
     for i, filename in enumerate(os.listdir(path_input)):
         input_jpg = '{}{}'.format(path_input, filename)
