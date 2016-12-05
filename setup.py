@@ -4,7 +4,7 @@ from distutils.core import setup
 
 setup(
     name='stegasawus',
-    version='0.1',
+    version='0.2',
     description='Machine learning detection of steganographic images',
     author='Lachlan Taylor',
     packages=['stegasawus']
