@@ -1,4 +1,7 @@
 import os
+import base64
+import cStringIO
+from PIL import Image
 
 from skimage import io
 
@@ -28,7 +31,7 @@ def get_secret_message(filepath):
     return message
 
 
-def hide_message_jpg(secret_message, cover_file, stego_file):
+def hide_message_jpg(secret_message, fp_cover, fp_stego):
     """
     Hide message in jpg file.
 
@@ -36,13 +39,53 @@ def hide_message_jpg(secret_message, cover_file, stego_file):
     ----------
     secret_message : string
         Message to hide.
-    cover_file : string, filepath
+    fp_cover : string, filepath
         Input image to hide message in.
-    stego_file : string, filepath
+    fp_stego : string, filepath
         Output image with hidden message embedded.
 
     """
-    exifHeader.hide(cover_file, stego_file, secret_message=secret_message)
+    exifHeader.hide(fp_cover, fp_stego, secret_message=secret_message)
+
+
+def hide_message_png(secret_message, fp_cover, fp_stego, generator):
+    """
+    Hide message in png file.
+
+    Parameters
+    ----------
+    secret_message : string
+        Message to hide.
+    fp_cover : string, filepath
+        Input image to hide message in.
+    fp_stego : string, filepath
+        Output image with hidden message embedded.
+    generator : string
+        Name of LSB embedding location generator from stegano.lsbset.generators
+
+    """
+    generator_set = {
+        'identity': generators.identity(),
+        'eratosthenes': generators.eratosthenes(),
+        # 'ackermann': generators.ackermann(),
+        'carmichael': generators.carmichael(),
+        'fermat': generators.fermat(),
+        'fibonacci': generators.fibonacci(),
+        'mersenne': generators.mersenne(),
+        'syracuse': generators.syracuse(),
+    }
+
+    if generator not in generator_set:
+        generator = generators.identity()
+    else:
+        generator = generator_set[generator]
+
+    S = lsbset.hide(
+        fp_cover,
+        secret_message,
+        generator=generator
+    )
+    S.save(fp_stego)
 
 
 def batch_hide_message(secret_message, path_images, path_output, file_type,
@@ -81,12 +124,7 @@ def batch_hide_message(secret_message, path_images, path_output, file_type,
             stego = '{}{}'.format(path_output, filename)
 
             if file_type == 'png':
-                S = lsbset.hide(
-                    cover,
-                    secret_message=secret_message,
-                    generator=generators.identity()
-                )
-                S.save(stego)
+                hide_message_png(secret_message, cover, stego, generator)
             elif file_type == 'jpg':
                 exifHeader.hide(cover, stego, secret_message=secret_message)
             else:
@@ -96,13 +134,50 @@ def batch_hide_message(secret_message, path_images, path_output, file_type,
         except IndexError as e:
             print '{}: {} | IndexError: {}'.format(i, filename, e)
         except Exception as e:
-            print '{} : {} | Exception: {}'.format(i, filename, e)
+            print '{}: {} | Exception: {}'.format(i, filename, e)
 
     print 'image encoding complete.'
 
 
 def batch_hide_message_rnd_generator():
     pass
+
+
+def crop_image(image, m, n, centre=True):
+    if centre:
+        x, y, _ = image.shape
+        x0 = int((x - m) / 2) - 1
+        y0 = int((y - n) / 2) - 1
+        xm = int(m + x0)
+        yn = int(n + y0)
+        return image[x0:xm, y0:yn]
+    else:
+        return image[0:m, 0:n]
+
+
+def read_string_image(filepath):
+    with open(filepath, 'rb') as f:
+        s = base64.b64decode(f.read())
+        s = cStringIO.StringIO(s)
+        I = np.array(Image.open(s))
+    return I
+
+
+def create_benchmark_image_message(m, n):
+    path = '/home/rokkuran/workspace/stegasawus/'
+    path_msg = '{}data/messages/'.format(path)
+
+    I = io.imread(path_data + 'Lenna.png')
+    I = crop_image(I, m, n, centre=True)
+
+    output_filepath = path_msg + 'Lenna_{}x{}.png'.format(m, n)
+    io.imsave(arr=I, fname=output_filepath)
+
+    with open(output_filepath, 'rb') as fr:
+        s = base64.b64encode(fr.read())
+        filename = 'Lenna_{}x{}.txt'.format(m, n)
+        with open(path_msg + filename, 'wb') as fw:
+            fw.write(s)
 
 
 def crop_images(path_images, path_output, dimensions=(256, 256)):
@@ -125,7 +200,7 @@ def crop_images(path_images, path_output, dimensions=(256, 256)):
     for i, filename in enumerate(os.listdir(path_images)):
         try:
             image = io.imread('{}{}'.format(path_images, filename))
-            cropped = image[0:m, 0:n]
+            cropped = crop_image(image, m, n, centre=True)
             io.imsave(
                 fname='{}{}'.format(path_output, filename),
                 arr=cropped
