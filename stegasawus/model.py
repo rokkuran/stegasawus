@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import yaml
+import re
 
 import matplotlib.pyplot as plt
 from scipy import stats
@@ -212,6 +213,6 @@ if __name__ == '__main__':
         classifiers=classifiers,
         X=train.as_matrix(),
         y=y_train_binary,
-        splitter=ShuffleSplit(n_splits=3, test_size=0.2, random_state=0),
+        splitter=ShuffleSplit(n_splits=5, test_size=0.2, random_state=0),
         cv_mean=True
     )
