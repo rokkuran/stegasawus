@@ -41,24 +41,82 @@ from sklearn.discriminant_analysis import (
 from xgboost import XGBClassifier
 
 
-def scoring_metrics(y_true, y_pred, return_string=False):
-    acc = metrics.accuracy_score(y_true, y_pred)
-    p = metrics.precision_score(y_true, y_pred)
-    r = metrics.recall_score(y_true, y_pred)
-    f1 = metrics.f1_score(y_true, y_pred)
-    roc_auc = metrics.roc_auc_score(y_true, y_pred)
+# ******************************************************************************
+def gs_parameter_tuning(clf, X_train, y_train, parameters, scoring, cv=5):
+    gs_clf = GridSearchCV(clf, parameters, scoring=scoring, cv=cv, n_jobs=6)
+    gs_clf = gs_clf.fit(X_train, y_train)
 
-    scores = [acc, p, r, f1, roc_auc]
-
-    s = 'acc = {:.2%}; p = {:.4f}; r = {:.4f}; '.format(acc, p, r)
-    s += 'f1 = {:.4f}; roc_auc = {:.4f}'.format(f1, roc_auc)
-
-    if return_string:
-        return scores, s
-    else:
-        return scores
+    best_parameters, score, _ = max(gs_clf.grid_scores_, key=lambda x: x[1])
+    for param_name in sorted(parameters.keys()):
+        print("%s: %r" % (param_name, best_parameters[param_name]))
 
 
+# TODO: PSO - generalise function, investigate performance, try dim reduction.
+# TODO: PSO - work out how to use integer values.
+def pso_parameter_tuning(clf, X, y, lb, ub, swarmsize, maxiter, n_splits=3):
+    """
+    Particle swarm optimisation based parameter tuning.
+
+    Parameters
+    ----------
+    clf : sklearn classifier or pipeline
+        Model to tune parameters.
+    X : numpy.ndarray
+        Training features.
+    y : numpy.ndarray
+        Training target values.
+    lb : array_like
+        Lower bound values for parameters to tune.
+    ub : array_like
+        Upper bound values for parameters to tune.
+    swarmsize : int
+        Number of particles in the swarm.
+    maxiter : int
+        Maximum number of iterations for swarm to search.
+    n_splits : int, default = 3
+        Number of cross validation splits.
+
+    Returns
+    -------
+    g : array
+        The swarm's best known parameters settings.
+    f : scalar
+        The value of the minimisation function at g.
+
+    """
+    def minimise(x):
+        C, tol = x
+
+        pipeline = Pipeline([
+            ('scaler', StandardScaler()),
+            # ('clf', LogisticRegression(C=C, tol=tol, solver='lbfgs', n_jobs=6))
+            ('clf', LinearSVC(C=C, tol=tol))
+        ])
+
+        ss = ShuffleSplit(n_splits=n_splits, test_size=0.2)
+
+        ll = []
+        for i, (train_idx, val_idx) in enumerate(ss.split(X, y)):
+            X_train, X_val = X[train_idx], X[val_idx]
+            y_train, y_val = y[train_idx], y[val_idx]
+
+            model = pipeline.fit(X_train, y_train)
+            y_pred = model.predict(X_val)
+            ll.append(metrics.log_loss(y_val, y_pred))
+        return np.mean(ll)
+
+    g, f = pso(
+        minimise,
+        lb,
+        ub,
+        swarmsize=swarmsize,
+        maxiter=maxiter,
+        debug=True
+    )
+    return g, f
+
+
+# ******************************************************************************
 if __name__ == '__main__':
     path = '/home/rokkuran/workspace/stegasawus'
     # path_train = '{}/data/features/train.csv'.format(path)
@@ -114,12 +172,13 @@ if __name__ == '__main__':
         ),
         'svc_rbf_default': SVC(kernel='rbf'),
         'svc_linear': LinearSVC(
-            C=9.33598911e+04,
+            C=1e3,
             loss='squared_hinge',
             penalty='l2',
-            tol=9.76314258e-04
+            tol=1e-3
         ),
         'svc_linear_default': LinearSVC(),
+        'nusvc': NuSVC(),
         'rf': RandomForestClassifier(
             criterion='entropy',
             max_depth=12,
@@ -157,43 +216,37 @@ if __name__ == '__main__':
     }
 
     # **************************************************************************
-    scores = []
-    score_cols = [
-        'classifier', 'split', 'acc', 'precision', 'recall',
-        'f1', 'roc_auc'
-    ]
+    parameters = yaml.safe_load(
+        open('{}/stegasawus/parameter_tuning.yaml'.format(path), 'rb')
+    )
 
-    ss = ShuffleSplit(n_splits=5, test_size=0.2, random_state=0)
+    # Grid search parameter tuning.
+    name = 'svc_linear'
+    pipeline = Pipeline([
+        ('features', combined_features),
+        (name, classifiers[name]),
+    ])
 
-    train = train.as_matrix()
-    for i, (train_idx, val_idx) in enumerate(ss.split(train, y_train_binary)):
-        X_train, X_val = train[train_idx], train[val_idx]
-        y_train, y_val = y_train_binary[train_idx], y_train_binary[val_idx]
+    gs_parameter_tuning(
+        clf=pipeline,
+        X_train=train.as_matrix(),
+        y_train=y_train_binary,
+        cv=3,
+        parameters=parameters[name],
+        scoring='accuracy'
+    )
 
-        for name, clf in classifiers.iteritems():
-
-            pipeline = Pipeline([
-                ('features', combined_features),
-                (name, clf)
-            ])
-            estimator = pipeline.fit(X_train, y_train)
-
-            y_pred = estimator.predict(X_val)
-
-            m, ps = scoring_metrics(y_val, y_pred, return_string=True)
-            ps += ' | {}_{}'.format(name, i)
-            print ps
-            scores.append([name, i] + m)
-
-    scores = pd.DataFrame(scores, columns=score_cols)
-    scores = scores.sort_values(
-        by=['acc', 'f1', 'roc_auc'],
-        ascending=False
-    ).reset_index(drop=True)
-
-    scores_mean = scores.ix[:, scores.columns != 'split'] \
-        .groupby(['classifier']) \
-        .mean() \
-        .sort_values(by=['acc', 'f1', 'roc_auc'], ascending=False) \
-
-    print '\n\n', scores_mean
+    # Particle swarm optimisation parameter tuning.
+    lb = [1e-2, 1e-4]
+    ub = [1e5, 1e-3]
+    g, f = pso_parameter_tuning(
+        clf=None,
+        X=train.as_matrix(),
+        y=y_train_binary,
+        lb=lb,
+        ub=ub,
+        swarmsize=50,
+        maxiter=10,
+        n_splits=1
+    )
+    print g, f
