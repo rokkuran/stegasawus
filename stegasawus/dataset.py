@@ -160,6 +160,20 @@ def crop_image(image, m, n, centre=True):
 
 
 def read_string_image(filepath):
+    """
+    Reads and converts image string to RGB array.
+
+    Parameters
+    ----------
+    filepath : string, filepath
+        Text file to convert to image.
+
+    Returns
+    -------
+    I : numpy.ndarray
+        RGB image array.
+
+    """
     with open(filepath, 'rb') as f:
         s = base64.b64decode(f.read())
         s = cStringIO.StringIO(s)
@@ -167,7 +181,25 @@ def read_string_image(filepath):
     return I
 
 
+# TODO: generalise so any image can be used as benchmark or use relative paths
 def create_benchmark_image_message(m, n):
+    """
+    Creates benchmark image crops and converts to string for the given
+    dimensions. Used for creating standard message sizes for model training and
+    investigation.
+
+    Parameters
+    ----------
+    m : int
+        Row crop size.
+    n : int
+        Column crop size.
+
+    Returns
+    -------
+    Resized images of Lenna.png in data/messages directory.
+
+    """
     path = '/home/rokkuran/workspace/stegasawus/'
     path_msg = '{}data/messages/'.format(path)
 
@@ -184,7 +216,7 @@ def create_benchmark_image_message(m, n):
             fw.write(s)
 
 
-def crop_images(path_images, path_output, dimensions=(256, 256)):
+def crop_images(path_images, path_output, dimensions=(256, 256), centre=True):
     """
     Batch crop images from top left hand corner to dimensions specified. Skips
     images where dimensions are incompatible.
@@ -197,6 +229,8 @@ def crop_images(path_images, path_output, dimensions=(256, 256)):
         Directory for output of cropped images.
     dimensions : array_like
         Dimensions to crop image to: (n, m) array.
+    centre : bool
+        Whether to centre image crops or start from top left (0, 0).
 
     """
     print 'cropping images...'
@@ -204,7 +238,7 @@ def crop_images(path_images, path_output, dimensions=(256, 256)):
     for i, filename in enumerate(os.listdir(path_images)):
         try:
             image = io.imread('{}{}'.format(path_images, filename))
-            cropped = crop_image(image, m, n, centre=True)
+            cropped = crop_image(image, m, n, centre=centre)
             io.imsave(
                 fname='{}{}'.format(path_output, filename),
                 arr=cropped
