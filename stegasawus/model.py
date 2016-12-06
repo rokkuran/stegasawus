@@ -162,13 +162,7 @@ def get_equal_sets(train):
 
 
 classifiers = {
-    'svc_linear': LinearSVC(
-        C=9.33598911e+04,
-        loss='squared_hinge',
-        penalty='l2',
-        tol=9.76314258e-04
-    ),
-    'svc_linear_default': LinearSVC(),
+    'svc_linear': LinearSVC(),
     'lr_lbfgs': LogisticRegression(
         C=2.02739770e+04,  # particle swarm optimised
         tol=6.65926091e-04,
@@ -213,7 +207,6 @@ if __name__ == '__main__':
     y_train_binary = le_target.transform(train[target])
 
     train = train.drop([target, 'image', 'filename'], axis=1)
-    # train = train.drop([target, 'image'], axis=1)
 
     cv_scores_mean = model_comparison(
         classifiers=classifiers,
