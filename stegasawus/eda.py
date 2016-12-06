@@ -167,7 +167,8 @@ class JointImageAnalyser(object):
         plt.show()
 
 
-def generate_feature_histograms(filepath_train, bins=50, normalise=False):
+def generate_feature_histograms(filepath_train, path_output, bins=50,
+                                normalise=False):
     """
     Generate batch of comparison histograms of cover and steganographic image
     features.
@@ -188,7 +189,8 @@ def generate_feature_histograms(filepath_train, bins=50, normalise=False):
     """
     train = pd.read_csv(filepath_train)
 
-    cols = [x for x in train.columns if x not in ('label', 'image')]
+    exclusions = ['label', 'image', 'filename']
+    cols = [x for x in train.columns if x not in exclusions]
 
     if normalise:
         train[cols] = train[cols].apply(lambda x: (x - x.mean()) / x.std())
@@ -209,17 +211,17 @@ def generate_feature_histograms(filepath_train, bins=50, normalise=False):
         plt.legend(loc='upper right', frameon=False)
         plt.title(feature)
 
-        # TODO: change figure output path to argument.
-        plt.savefig('{}/output/{}_bins{}.png'.format(path, feature, bins))
+        plt.savefig('{}/{}_bins{}.png'.format(path_output, feature, bins))
         print feature
         plt.close()
 
 
-def generate_feature_distplots(filepath_train, normalise=False):
+def generate_feature_distplots(filepath_train, path_output, normalise=False):
     """"""
     train = pd.read_csv(filepath_train)
 
-    cols = [x for x in train.columns if x not in ('label', 'image')]
+    exclusions = ['label', 'image', 'filename']
+    cols = [x for x in train.columns if x not in exclusions]
 
     if normalise:
         train[cols] = train[cols].apply(lambda x: (x - x.mean()) / x.std())
@@ -233,16 +235,17 @@ def generate_feature_distplots(filepath_train, normalise=False):
 
         plt.legend(loc='upper right', frameon=False)
         plt.title(feature)
-        plt.savefig('{}/output/distplot_{}.png'.format(path, feature))
+        plt.savefig('{}/distplot_{}.png'.format(path_output, feature))
         print feature
         plt.close()
 
 
-def generate_feature_kde(filepath_train, normalise=False):
+def generate_feature_kde(filepath_train, path_output, normalise=False):
     """"""
     train = pd.read_csv(filepath_train)
 
-    cols = [x for x in train.columns if x not in ('label', 'image')]
+    exclusions = ['label', 'image', 'filename']
+    cols = [x for x in train.columns if x not in exclusions]
 
     if normalise:
         train[cols] = train[cols].apply(lambda x: (x - x.mean()) / x.std())
@@ -262,7 +265,7 @@ def generate_feature_kde(filepath_train, normalise=False):
 
         plt.legend(loc='upper right', frameon=False)
         plt.title('KDE (Gaussian): {}'.format(feature))
-        plt.savefig('{}/output/kde_{}.png'.format(path, feature))
+        plt.savefig('{}/kde_{}.png'.format(path_output, feature))
         print feature
         plt.close()
 
