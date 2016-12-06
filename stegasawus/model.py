@@ -5,6 +5,7 @@ import yaml
 import matplotlib.pyplot as plt
 from scipy import stats
 from pyswarm import pso
+from collections import Counter
 
 from sklearn import metrics
 from sklearn.preprocessing import (
@@ -21,21 +22,13 @@ from sklearn.decomposition import PCA, KernelPCA
 from sklearn.feature_selection import SelectKBest, RFE
 
 from sklearn.naive_bayes import GaussianNB
-from sklearn.neighbors import KNeighborsClassifier
 from sklearn.linear_model import (
     LogisticRegression,
     PassiveAggressiveClassifier)
 from sklearn.svm import SVC, LinearSVC
-from sklearn.ensemble import (
-    RandomForestClassifier,
-    ExtraTreesClassifier,
-    AdaBoostClassifier,
-    GradientBoostingClassifier,
-    VotingClassifier)
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.naive_bayes import GaussianNB
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
-
-from xgboost import XGBClassifier
 
 
 def cv_split_generator(X, y, splitter):
@@ -154,21 +147,21 @@ def model_comparison(classifiers, X, y, splitter, cv_mean=True):
         return scores
 
 
+def get_equal_sets(train):
+    """Ensure approximate 50/50 cover stego split"""
+    cols = train.columns
+    a = train.as_matrix()
+    np.random.shuffle(a)
+    cover_half = a[a[:, 1] == 'cover']
+    stego_half = a[a[:, 1] == 'stego'][:Counter(train.label)['cover']]
+    train = pd.DataFrame(
+        np.concatenate((cover_half, stego_half), axis=0),
+        columns=cols
+    )
+    return train
+
+
 classifiers = {
-    'knn': KNeighborsClassifier(
-        n_neighbors=6,
-        algorithm='ball_tree',
-        weights='distance',
-        metric='chebyshev'
-    ),
-    'knn_default': KNeighborsClassifier(),
-    'svc_rbf': SVC(
-        kernel='rbf',
-        C=50,
-        gamma=0.01,
-        tol=1e-3
-    ),
-    'svc_rbf_default': SVC(kernel='rbf'),
     'svc_linear': LinearSVC(
         C=9.33598911e+04,
         loss='squared_hinge',
@@ -176,26 +169,7 @@ classifiers = {
         tol=9.76314258e-04
     ),
     'svc_linear_default': LinearSVC(),
-    'rf': RandomForestClassifier(
-        criterion='entropy',
-        max_depth=12,
-        min_samples_leaf=8,
-        min_samples_split=5
-    ),
-    'rf_default': RandomForestClassifier(),
-    'xgb': XGBClassifier(),
-    'adaboost': AdaBoostClassifier(),
-    'et': ExtraTreesClassifier(
-        criterion='entropy',
-        max_depth=25,
-        min_samples_leaf=5,
-        min_samples_split=5
-    ),
-    'et_default': ExtraTreesClassifier(),
-    'gbc_default': GradientBoostingClassifier(),
     'lr_lbfgs': LogisticRegression(
-        # C=1000,
-        # tol=1e-3,
         C=2.02739770e+04,  # particle swarm optimised
         tol=6.65926091e-04,
         solver='lbfgs'
@@ -209,6 +183,13 @@ classifiers = {
     'pa_default': PassiveAggressiveClassifier(),
     'gnb': GaussianNB(),
     'lda': LinearDiscriminantAnalysis(),
+    'rf': RandomForestClassifier(
+        n_estimators=200,
+        criterion='gini',
+        max_depth=4,
+        min_samples_leaf=3,
+        min_samples_split=3
+    ),
 }
 
 
@@ -218,6 +199,7 @@ if __name__ == '__main__':
     path_train = '{}/data/features/train_lenna_identity.csv'.format(path)
 
     train = pd.read_csv(path_train)
+    train = get_equal_sets(train)
 
     filenames = train.filename.copy()
     filenames = filenames.apply(
@@ -237,6 +219,6 @@ if __name__ == '__main__':
         classifiers=classifiers,
         X=train.as_matrix(),
         y=y_train_binary,
-        splitter=ShuffleSplit(n_splits=5, test_size=0.2, random_state=0),
+        splitter=ShuffleSplit(n_splits=3, test_size=0.2, random_state=0),
         cv_mean=True
     )
