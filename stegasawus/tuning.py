@@ -1,20 +1,21 @@
 import numpy as np
 import pandas as pd
 import yaml
+import re
 
 import matplotlib.pyplot as plt
-from scipy import stats
+
 from pyswarm import pso
 
 from sklearn import metrics
 from sklearn.preprocessing import (
     LabelEncoder,
     StandardScaler,
-    LabelBinarizer,
     PolynomialFeatures)
 from sklearn.model_selection import (
     GridSearchCV,
     learning_curve,
+    validation_curve,
     ShuffleSplit)
 from sklearn.pipeline import Pipeline, FeatureUnion
 from sklearn.decomposition import PCA, KernelPCA
@@ -220,6 +221,7 @@ if __name__ == '__main__':
         open('{}/stegasawus/parameter_tuning.yaml'.format(path), 'rb')
     )
 
+    # **************************************************************************
     # Grid search parameter tuning.
     name = 'svc_linear'
     pipeline = Pipeline([
@@ -236,6 +238,7 @@ if __name__ == '__main__':
         scoring='accuracy'
     )
 
+    # **************************************************************************
     # Particle swarm optimisation parameter tuning.
     lb = [1e-2, 1e-4]
     ub = [1e5, 1e-3]
@@ -250,3 +253,96 @@ if __name__ == '__main__':
         n_splits=1
     )
     print g, f
+
+    # **************************************************************************
+    # plot validation curve
+    # name = 'lr_lbfgs'
+    name = 'svc_linear'
+    pipeline = Pipeline([
+        ('features', combined_features),
+        (name, classifiers[name]),
+    ])
+
+    param_range = np.logspace(-2, 3, 6)
+    # param_range = np.logspace(-5, -1, 5)
+    train_scores, val_scores = validation_curve(
+        estimator=pipeline,
+        X=train.as_matrix(),
+        y=y_train_binary,
+        param_name='%s__C' % name,
+        # param_name='lr_lbfgs__tol',
+        param_range=param_range,
+        cv=5,
+        scoring='accuracy',
+        n_jobs=6
+    )
+
+    plt.semilogx(
+        param_range, train_scores.mean(axis=1),
+        ls='-', lw=1, color='b', alpha=1, label='train'
+    )
+    plt.fill_between(
+        param_range,
+        train_scores.mean(axis=1) - train_scores.std(axis=1),
+        train_scores.mean(axis=1) + train_scores.std(axis=1),
+        color='b', alpha=0.1, lw=0.5
+    )
+    plt.semilogx(
+        param_range, val_scores.mean(axis=1),
+        ls='-', lw=1, color='r', alpha=1, label='validation'
+    )
+    plt.fill_between(
+        param_range,
+        val_scores.mean(axis=1) - val_scores.std(axis=1),
+        val_scores.mean(axis=1) + val_scores.std(axis=1),
+        color='r', alpha=0.1, lw=0.5
+    )
+
+    plt.title('%s: validation curve' % name)
+    plt.xlabel('C')
+    plt.ylabel('Score')
+    plt.ylim(0.0, 1.1)
+    plt.legend(loc="best")
+    plt.show()
+
+    # **************************************************************************
+    # plot roc curve
+    # name = 'lr_lbfgs'
+    name = 'svc_linear'
+    pipeline = Pipeline([
+        ('features', combined_features),
+        (name, classifiers[name]),
+    ])
+
+    ss = ShuffleSplit(n_splits=5, test_size=0.2)
+
+    X = train.as_matrix()
+    y = y_train_binary
+
+    fpr, tpr = [], []
+    for i, (train_idx, val_idx) in enumerate(ss.split(X, y)):
+        X_train, X_val = X[train_idx], X[val_idx]
+        y_train, y_val = y[train_idx], y[val_idx]
+
+        model = pipeline.fit(X_train, y_train)
+        y_pred = model.predict(X_val)
+
+        fpr_i, tpr_i, _ = metrics.roc_curve(y_val, y_pred)
+        fpr.append(fpr_i)
+        tpr.append(tpr_i)
+
+    fpr, tpr = np.array(fpr), np.array(tpr)
+
+    plt.figure()
+    plt.plot(
+        fpr.mean(axis=0), tpr.mean(axis=0),
+        color='b', alpha=0.6, lw=1, label='ROC curve'
+    )
+    plt.plot([0, 1], [0, 1], color='k', alpha=0.6, lw=1, linestyle='--')
+    plt.xlim([0.0, 1.0])
+    plt.ylim([0.0, 1.05])
+    plt.xlabel('False Positive Rate')
+    plt.ylabel('True Positive Rate')
+    plt.title('%s: ROC Curve' % name)
+    plt.legend(loc="lower right")
+    plt.show()
