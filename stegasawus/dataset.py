@@ -61,18 +61,22 @@ def hide_message_png(secret_message, fp_cover, fp_stego, generator):
     fp_stego : string, filepath
         Output image with hidden message embedded.
     generator : string
-        Name of LSB embedding location generator from stegano.lsbset.generators
+        Name of LSB embedding location generator
+        - identity
+        - eratosthenes
+        - eratosthenes_composite
+        - triangular_numbers
+        - syracuse
 
     """
     generator_set = {
         'identity': generators.identity(),
         'eratosthenes': generators.eratosthenes(),
-        # 'ackermann': generators.ackermann(),
-        'carmichael': generators.carmichael(),
-        'fermat': generators.fermat(),
-        'fibonacci': generators.fibonacci(),
-        'mersenne': generators.mersenne(),
-        'syracuse': generators.syracuse(),
+        'eratosthenes_composite': generators.eratosthenes_composite(),
+        # 'fibonacci': generators.fibonacci(),
+        # 'mersenne': generators.mersenne(),
+        'triangular_numbers': generators.OEIS_A000217(),
+        'syracuse': generators.syracuse(l=len(message)),
     }
 
     if generator not in generator_set:
