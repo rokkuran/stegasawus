@@ -1,7 +1,14 @@
+from stegasawus.model import (
+    cv_split_generator,
+    get_pipeline,
+    get_equal_sets)
+
 import numpy as np
 import pandas as pd
 import yaml
 import re
+import collections
+import functools
 
 import matplotlib.pyplot as plt
 
@@ -54,7 +61,8 @@ def gs_parameter_tuning(clf, X_train, y_train, parameters, scoring, cv=5):
 
 # TODO: PSO - generalise function, investigate performance, try dim reduction.
 # TODO: PSO - work out how to use integer values.
-def pso_parameter_tuning(clf, X, y, lb, ub, swarmsize, maxiter, n_splits=3):
+def pso_parameter_tuning(clf, X, y, lb, ub, swarmsize, maxiter, n_splits=3,
+                         integer=False, *args):
     """
     Particle swarm optimisation based parameter tuning.
 
@@ -85,25 +93,51 @@ def pso_parameter_tuning(clf, X, y, lb, ub, swarmsize, maxiter, n_splits=3):
         The value of the minimisation function at g.
 
     """
-    def minimise(x):
+    def minimise(x, *args):
+        # random forest: all values need to be integer
+        # x = [int(np.round(v, 0)) for v in x]
+
+        # xgb: max_depth should be integer
+        # max_depth, learning_rate, gamma = x
+        # max_depth = int(np.round(max_depth, 0))
+
         C, tol = x
+        # max_depth, min_samples_leaf, min_samples_split = x
 
         pipeline = Pipeline([
-            ('scaler', StandardScaler()),
+            # ('scaler', StandardScaler()),
+            ('pca', Pipeline([
+                ('scaler', StandardScaler()),
+                ('pca', PCA(n_components=125)),
+            ])),
             # ('clf', LogisticRegression(C=C, tol=tol, solver='lbfgs', n_jobs=6))
             ('clf', LinearSVC(C=C, tol=tol))
+            # ('clf', RandomForestClassifier(
+            #     criterion='gini',
+            #     max_depth=max_depth,
+            #     min_samples_leaf=min_samples_leaf,
+            #     min_samples_split=min_samples_split
+            # ))
+            # ('clf', XGBClassifier(
+            #     n_estimators=200,
+            #     max_depth=max_depth,
+            #     learning_rate=learning_rate,
+            #     gamma=gamma
+            # ))
         ])
 
+        # pipeline = get_pipeline('svc_linear')
+
         ss = ShuffleSplit(n_splits=n_splits, test_size=0.2)
+        cv_splits = cv_split_generator(X=X, y=y, splitter=ss)
 
         ll = []
-        for i, (train_idx, val_idx) in enumerate(ss.split(X, y)):
-            X_train, X_val = X[train_idx], X[val_idx]
-            y_train, y_val = y[train_idx], y[val_idx]
-
+        for i, X_train, X_val, y_train, y_val in cv_splits:
             model = pipeline.fit(X_train, y_train)
             y_pred = model.predict(X_val)
             ll.append(metrics.log_loss(y_val, y_pred))
+
+        print x, np.mean(ll)
         return np.mean(ll)
 
     g, f = pso(
@@ -112,7 +146,8 @@ def pso_parameter_tuning(clf, X, y, lb, ub, swarmsize, maxiter, n_splits=3):
         ub,
         swarmsize=swarmsize,
         maxiter=maxiter,
-        debug=True
+        debug=True,
+        args=args
     )
     return g, f
 
@@ -124,6 +159,7 @@ if __name__ == '__main__':
     path_train = '{}/data/features/train_lenna_identity.csv'.format(path)
 
     train = pd.read_csv(path_train)
+    train = get_equal_sets(train)
 
     filenames = train.filename.copy()
     filenames = filenames.apply(
@@ -138,23 +174,6 @@ if __name__ == '__main__':
 
     train = train.drop([target, 'image', 'filename'], axis=1)
     # train = train.drop([target, 'image'], axis=1)
-
-    # **************************************************************************
-    combined_features = Pipeline([
-        ('features', FeatureUnion([
-            ('scaler', StandardScaler()),
-            # ('poly', PolynomialFeatures(
-            #     degree=2,
-            #     interaction_only=True,
-            #     include_bias=False
-            # ))
-        ])),
-        # ('pca', Pipeline([
-        #     ('scaler', StandardScaler()),
-        #     ('pca', PCA()),
-        # ])),
-        # ('kpca', KernelPCA(n_components=10)),
-    ])
 
     # **************************************************************************
     classifiers = {
@@ -181,13 +200,13 @@ if __name__ == '__main__':
         'svc_linear_default': LinearSVC(),
         'nusvc': NuSVC(),
         'rf': RandomForestClassifier(
-            criterion='entropy',
-            max_depth=12,
-            min_samples_leaf=8,
-            min_samples_split=5
+            criterion='gini',
+            n_estimators=200,
+            max_depth=4,
+            min_samples_leaf=3,
+            min_samples_split=3
         ),
         'rf_default': RandomForestClassifier(),
-        'xgb': XGBClassifier(),
         'adaboost': AdaBoostClassifier(),
         'et': ExtraTreesClassifier(
             criterion='entropy',
@@ -214,6 +233,27 @@ if __name__ == '__main__':
         'gnb': GaussianNB(),
         'lda': LinearDiscriminantAnalysis(),
         'qda': QuadraticDiscriminantAnalysis(),
+        'xgb_defualt': XGBClassifier(),
+        'xgb': XGBClassifier(
+            max_depth=6,
+            learning_rate=0.01,
+            n_estimators=100,
+            silent=True,
+            objective='binary:logistic',
+            nthread=-1,
+            gamma=0,
+            min_child_weight=1,
+            max_delta_step=0,
+            subsample=1,
+            colsample_bytree=1,
+            colsample_bylevel=1,
+            reg_alpha=0,
+            reg_lambda=1,
+            scale_pos_weight=1,
+            base_score=0.5,
+            seed=0,
+            missing=None
+        )
     }
 
     # **************************************************************************
@@ -223,126 +263,136 @@ if __name__ == '__main__':
 
     # **************************************************************************
     # Grid search parameter tuning.
-    name = 'svc_linear'
-    pipeline = Pipeline([
-        ('features', combined_features),
-        (name, classifiers[name]),
-    ])
+    def run_gs_parameter_tuning():
+        name = 'knn'
+        pipeline = get_pipeline(name)
 
-    gs_parameter_tuning(
-        clf=pipeline,
-        X_train=train.as_matrix(),
-        y_train=y_train_binary,
-        cv=3,
-        parameters=parameters[name],
-        scoring='accuracy'
-    )
+        gs_parameter_tuning(
+            clf=pipeline,
+            X_train=train.as_matrix(),
+            y_train=y_train_binary,
+            cv=3,
+            parameters=parameters[name],
+            scoring='accuracy'
+        )
+
+    # run_gs_parameter_tuning()
 
     # **************************************************************************
     # Particle swarm optimisation parameter tuning.
-    lb = [1e-2, 1e-4]
-    ub = [1e5, 1e-3]
-    g, f = pso_parameter_tuning(
-        clf=None,
-        X=train.as_matrix(),
-        y=y_train_binary,
-        lb=lb,
-        ub=ub,
-        swarmsize=50,
-        maxiter=10,
-        n_splits=1
-    )
-    print g, f
+    def run_pso_parameter_tuning():
+        # C, tol
+        lb = [1e-2, 1e-4]
+        ub = [1e3, 1e-3]
+
+        # max_depth, min_samples_leaf, min_samples_split
+        # lb = [2, 1, 2]
+        # ub = [20, 15, 10]
+
+        # max_depth, learning_rate, gamma
+        # lb = [3, 0.001, 0]
+        # ub = [10, 50, 50]
+
+        g, f = pso_parameter_tuning(
+            clf=None,
+            X=train.as_matrix(),
+            y=y_train_binary,
+            lb=lb,
+            ub=ub,
+            swarmsize=100,
+            maxiter=20,
+            n_splits=3
+        )
+        print g, f
+
+    run_pso_parameter_tuning()
 
     # **************************************************************************
-    # plot validation curve
-    # name = 'lr_lbfgs'
-    name = 'svc_linear'
-    pipeline = Pipeline([
-        ('features', combined_features),
-        (name, classifiers[name]),
-    ])
+    def plot_validation_curve():
+        # plot validation curve
+        # name = 'lr_lbfgs'
+        name = 'svc_linear'
+        pipeline = get_pipeline(name)
 
-    param_range = np.logspace(-2, 3, 6)
-    # param_range = np.logspace(-5, -1, 5)
-    train_scores, val_scores = validation_curve(
-        estimator=pipeline,
-        X=train.as_matrix(),
-        y=y_train_binary,
-        param_name='%s__C' % name,
-        # param_name='lr_lbfgs__tol',
-        param_range=param_range,
-        cv=5,
-        scoring='accuracy',
-        n_jobs=6
-    )
+        param_range = np.logspace(-2, 3, 6)
+        # param_range = np.logspace(-5, -1, 5)
+        train_scores, val_scores = validation_curve(
+            estimator=pipeline,
+            X=train.as_matrix(),
+            y=y_train_binary,
+            param_name='%s__C' % name,
+            # param_name='lr_lbfgs__tol',
+            param_range=param_range,
+            cv=5,
+            scoring='accuracy',
+            n_jobs=6
+        )
 
-    plt.semilogx(
-        param_range, train_scores.mean(axis=1),
-        ls='-', lw=1, color='b', alpha=1, label='train'
-    )
-    plt.fill_between(
-        param_range,
-        train_scores.mean(axis=1) - train_scores.std(axis=1),
-        train_scores.mean(axis=1) + train_scores.std(axis=1),
-        color='b', alpha=0.1, lw=0.5
-    )
-    plt.semilogx(
-        param_range, val_scores.mean(axis=1),
-        ls='-', lw=1, color='r', alpha=1, label='validation'
-    )
-    plt.fill_between(
-        param_range,
-        val_scores.mean(axis=1) - val_scores.std(axis=1),
-        val_scores.mean(axis=1) + val_scores.std(axis=1),
-        color='r', alpha=0.1, lw=0.5
-    )
+        plt.semilogx(
+            param_range, train_scores.mean(axis=1),
+            ls='-', lw=1, color='b', alpha=1, label='train'
+        )
+        plt.fill_between(
+            param_range,
+            train_scores.mean(axis=1) - train_scores.std(axis=1),
+            train_scores.mean(axis=1) + train_scores.std(axis=1),
+            color='b', alpha=0.1, lw=0.5
+        )
+        plt.semilogx(
+            param_range, val_scores.mean(axis=1),
+            ls='-', lw=1, color='r', alpha=1, label='validation'
+        )
+        plt.fill_between(
+            param_range,
+            val_scores.mean(axis=1) - val_scores.std(axis=1),
+            val_scores.mean(axis=1) + val_scores.std(axis=1),
+            color='r', alpha=0.1, lw=0.5
+        )
 
-    plt.title('%s: validation curve' % name)
-    plt.xlabel('C')
-    plt.ylabel('Score')
-    plt.ylim(0.0, 1.1)
-    plt.legend(loc="best")
-    plt.show()
+        plt.title('%s: validation curve' % name)
+        plt.xlabel('C')
+        plt.ylabel('Score')
+        plt.ylim(0.0, 1.1)
+        plt.legend(loc="best")
+        plt.show()
 
     # **************************************************************************
-    # plot roc curve
-    # name = 'lr_lbfgs'
-    name = 'svc_linear'
-    pipeline = Pipeline([
-        ('features', combined_features),
-        (name, classifiers[name]),
-    ])
+    def plot_roc_curve(name):
+        # plot roc curve
+        # name = 'lr_lbfgs'
+        pipeline = get_pipeline(name)
 
-    ss = ShuffleSplit(n_splits=5, test_size=0.2)
+        ss = ShuffleSplit(n_splits=5, test_size=0.2)
 
-    X = train.as_matrix()
-    y = y_train_binary
+        X = train.as_matrix()
+        y = y_train_binary
 
-    fpr, tpr = [], []
-    for i, (train_idx, val_idx) in enumerate(ss.split(X, y)):
-        X_train, X_val = X[train_idx], X[val_idx]
-        y_train, y_val = y[train_idx], y[val_idx]
+        fpr, tpr = [], []
+        for i, (train_idx, val_idx) in enumerate(ss.split(X, y)):
+            X_train, X_val = X[train_idx], X[val_idx]
+            y_train, y_val = y[train_idx], y[val_idx]
 
-        model = pipeline.fit(X_train, y_train)
-        y_pred = model.predict(X_val)
+            model = pipeline.fit(X_train, y_train)
+            y_pred = model.predict(X_val)
 
-        fpr_i, tpr_i, _ = metrics.roc_curve(y_val, y_pred)
-        fpr.append(fpr_i)
-        tpr.append(tpr_i)
+            fpr_i, tpr_i, _ = metrics.roc_curve(y_val, y_pred)
+            fpr.append(fpr_i)
+            tpr.append(tpr_i)
 
-    fpr, tpr = np.array(fpr), np.array(tpr)
+        fpr, tpr = np.array(fpr), np.array(tpr)
 
-    plt.figure()
-    plt.plot(
-        fpr.mean(axis=0), tpr.mean(axis=0),
-        color='b', alpha=0.6, lw=1, label='ROC curve'
-    )
-    plt.plot([0, 1], [0, 1], color='k', alpha=0.6, lw=1, linestyle='--')
-    plt.xlim([0.0, 1.0])
-    plt.ylim([0.0, 1.05])
-    plt.xlabel('False Positive Rate')
-    plt.ylabel('True Positive Rate')
-    plt.title('%s: ROC Curve' % name)
-    plt.legend(loc="lower right")
-    plt.show()
+        plt.figure()
+        plt.plot(
+            fpr.mean(axis=0), tpr.mean(axis=0),
+            color='b', alpha=0.6, lw=1, label='ROC curve'
+        )
+        plt.plot([0, 1], [0, 1], color='k', alpha=0.6, lw=1, linestyle='--')
+        plt.xlim([0.0, 1.0])
+        plt.ylim([0.0, 1.05])
+        plt.xlabel('False Positive Rate')
+        plt.ylabel('True Positive Rate')
+        plt.title('%s: ROC Curve' % name)
+        plt.legend(loc="lower right")
+        plt.show()
+
+    # plot_roc_curve('svc_linear')
