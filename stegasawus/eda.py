@@ -1,6 +1,9 @@
 import numpy as np
 import pandas as pd
 import pywt
+import base64
+import cStringIO
+from PIL import Image
 
 from stegano import exifHeader
 from stegano import lsbset
@@ -104,6 +107,34 @@ class JointImageAnalyser(object):
             return lsbset.reveal(self._filepath_stego, generator=generator)
         else:
             raise Exception('reveal: invalid file type.')
+
+    def reveal_image(self, generator, show=False):
+        """
+        If embedded message is an image, reveal hidden image.
+
+        Parameters
+        ----------
+        generator : function
+            Embedding location generator function from custom functon or
+            stegano.lsbset.generators. Message will not be revealed unless the
+            correct generator is used.
+        show : bool
+            Whether to show image plot.
+
+        Returns
+        -------
+        RGB image array. Optionally, shows image plot.
+
+        """
+        s = base64.b64decode(self.reveal(generator))
+        s = cStringIO.StringIO(s)
+        I = np.array(Image.open(s))
+
+        if show:
+            io.imshow(I)
+            plt.show()
+
+        return I
 
     def plot_images(self):
         """
