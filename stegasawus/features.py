@@ -154,9 +154,7 @@ def concatenate_feature_sets(filepath_cover, filepath_stego, filepath_output):
 
     """
     train_cover = pd.read_csv(filepath_cover)
-    train_cover['filename'] = filepath_cover.split('/')[-1]
     train_stego = pd.read_csv(filepath_stego)
-    train_stego['filename'] = filepath_stego.split('/')[-1]
     train = pd.concat([train_cover, train_stego])
     train.to_csv(filepath_output, index=False)
     return train
