@@ -3,8 +3,7 @@ from stegasawus.dataset import (
     batch_png_to_jpg,
     crop_images,
     batch_hide_message,
-    create_benchmark_image_message
-)
+    create_benchmark_image_message)
 
 
 # Crop all images in a file and ouput to directory

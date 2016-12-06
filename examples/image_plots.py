@@ -42,6 +42,7 @@ eda.generate_feature_histograms(
     normalise=False
 )
 
+# generate kernel density estimation plots
 eda.generate_feature_kde(
     filepath_train='{}data/features/train_lenna_identity.csv'.format(path),
     path_output=path_output,
