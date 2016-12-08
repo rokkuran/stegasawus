@@ -1,8 +1,11 @@
 data/archive/
 data/features/
+output/distplots
+output/histograms
+output/log1p_test
+output/k*
 images/
 jpeg-v4/
-output/
 archive/
 
 # Byte-compiled / optimized / DLL files
