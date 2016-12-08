@@ -24,8 +24,13 @@ gnb               0.5720  14.782827   0.551631  0.717321  0.623072  0.573963
 
 ```
 
+![Classifier Accuracy](https://github.com/rokkuran/stegasawus/blob/master/output/plots/clf_embedding_acc.png)
+
+![Classifier Log Loss](https://github.com/rokkuran/stegasawus/blob/master/output/plots/clf_embedding_ll.png)
+
 ### Future Work
 - Run model benchmarks for specific message sizes and embedding generator types.
 - Look at model performance for different image types (only cats and dogs at the moment).
 - Model persistence for well performing trained models.
 - Write a few non-repeating integer sequence generators for use in LSB embedding.
+- Write own LSB embedding algorithm.
