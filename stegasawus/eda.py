@@ -167,8 +167,7 @@ class JointImageAnalyser(object):
         plt.show()
 
 
-def generate_feature_histograms(filepath_train, path_output, bins=50,
-                                normalise=False):
+def generate_feature_histograms(filepath_train, path_output, bins=50):
     """
     Generate batch of comparison histograms of cover and steganographic image
     features.
@@ -179,8 +178,6 @@ def generate_feature_histograms(filepath_train, path_output, bins=50,
         Filepath for training csv file with image features.
     bins : int, default : 50
         Number of bins for histograms.
-    normalise : bool, default : False
-        Apply normalisation to image features.
 
     Returns
     -------
@@ -192,21 +189,16 @@ def generate_feature_histograms(filepath_train, path_output, bins=50,
     exclusions = ['label', 'image', 'filename']
     cols = [x for x in train.columns if x not in exclusions]
 
-    if normalise:
-        train[cols] = train[cols].apply(lambda x: (x - x.mean()) / x.std())
-
     for feature in cols:
         label = 'cover'
         I = train[train.label == label][feature]
-        plt.hist(
-            I, bins=bins, color='b', alpha=0.3, edgecolor='None', label=label
-        )
+        plt.hist(I, bins=bins, color='b', alpha=0.3, edgecolor='None',
+                 label=label)
 
         label = 'stego'
         S = train[train.label == 'stego'][feature]
-        plt.hist(
-            S, bins=bins, color='r', alpha=0.3, edgecolor='None', label=label
-        )
+        plt.hist(S, bins=bins, color='r', alpha=0.3, edgecolor='None'
+                 label=label)
 
         plt.legend(loc='upper right', frameon=False)
         plt.title(feature)
@@ -216,15 +208,12 @@ def generate_feature_histograms(filepath_train, path_output, bins=50,
         plt.close()
 
 
-def generate_feature_distplots(filepath_train, path_output, normalise=False):
+def generate_feature_distplots(filepath_train, path_output):
     """"""
     train = pd.read_csv(filepath_train)
 
     exclusions = ['label', 'image', 'filename']
     cols = [x for x in train.columns if x not in exclusions]
-
-    if normalise:
-        train[cols] = train[cols].apply(lambda x: (x - x.mean()) / x.std())
 
     for feature in cols:
         label = 'cover'
@@ -240,15 +229,12 @@ def generate_feature_distplots(filepath_train, path_output, normalise=False):
         plt.close()
 
 
-def generate_feature_kde(filepath_train, path_output, normalise=False):
+def generate_feature_kde(filepath_train, path_output):
     """"""
     train = pd.read_csv(filepath_train)
 
     exclusions = ['label', 'image', 'filename']
     cols = [x for x in train.columns if x not in exclusions]
-
-    if normalise:
-        train[cols] = train[cols].apply(lambda x: (x - x.mean()) / x.std())
 
     for feature in cols:
         I = train[train.label == 'cover'][feature]
@@ -272,9 +258,7 @@ def generate_feature_kde(filepath_train, path_output, normalise=False):
 
 def plot_joint_dist_hex(x, y):
     sns.set(style="ticks")
-    sns.jointplot(
-        x, y, kind="hex", stat_func=stats.kendalltau, color="#4CB391"
-    )
+    sns.jointplot(x, y, kind="hex", stat_func=stats.kendalltau, color="#4CB391")
     plt.show()
 
 
