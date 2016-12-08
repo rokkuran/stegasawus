@@ -59,8 +59,7 @@ def gs_parameter_tuning(clf, X_train, y_train, parameters, scoring, cv=5):
         print("%s: %r" % (param_name, best_parameters[param_name]))
 
 
-# TODO: PSO - generalise function, investigate performance, try dim reduction.
-# TODO: PSO - work out how to use integer values.
+# TODO: improve, extend, refactor
 def pso_parameter_tuning(clf, X, y, lb, ub, swarmsize, maxiter, n_splits=3,
                          integer=False, *args):
     """
@@ -68,7 +67,7 @@ def pso_parameter_tuning(clf, X, y, lb, ub, swarmsize, maxiter, n_splits=3,
 
     Parameters
     ----------
-    clf : sklearn classifier or pipeline
+    clf : sklearn classifier
         Model to tune parameters.
     X : numpy.ndarray
         Training features.
@@ -93,40 +92,43 @@ def pso_parameter_tuning(clf, X, y, lb, ub, swarmsize, maxiter, n_splits=3,
         The value of the minimisation function at g.
 
     """
+    def clf_check(clf, classifiers):
+        return any([isinstance(clf, c) for c in classifiers])
+
     def minimise(x, *args):
-        # random forest: all values need to be integer
-        # x = [int(np.round(v, 0)) for v in x]
+        """"""
+        if clf_check(clf, [LinearSVC, LogisticRegression]):
+            C, tol = x
+            clf.set_params(C=C, tol=tol)
 
-        # xgb: max_depth should be integer
-        # max_depth, learning_rate, gamma = x
-        # max_depth = int(np.round(max_depth, 0))
+        elif clf_check(clf, [RandomForestClassifier]):
+            # random forest: all values need to be integer
+            x = [int(np.round(v, 0)) for v in x]
+            max_depth, min_samples_leaf, min_samples_split = x
+            clf.set_params(
+                max_depth=max_depth,
+                min_samples_leaf=min_samples_leaf,
+                min_samples_split=min_samples_split)
 
-        C, tol = x
-        # max_depth, min_samples_leaf, min_samples_split = x
+        elif clf_check(clf, [XGBClassifier]):
+            # xgb: max_depth should be integer
+            max_depth, learning_rate, gamma = x
+            max_depth = int(np.round(max_depth, 0))
+            clf.set_params(
+                max_depth=max_depth,
+                learning_rate=learning_rate,
+                gamma=gamma)
+
+        else:
+            raise Exception('Classifier not supported.')
 
         pipeline = Pipeline([
-            # ('scaler', StandardScaler()),
             ('pca', Pipeline([
                 ('scaler', StandardScaler()),
                 ('pca', PCA(n_components=125)),
             ])),
-            # ('clf', LogisticRegression(C=C, tol=tol, solver='lbfgs', n_jobs=6))
-            ('clf', LinearSVC(C=C, tol=tol))
-            # ('clf', RandomForestClassifier(
-            #     criterion='gini',
-            #     max_depth=max_depth,
-            #     min_samples_leaf=min_samples_leaf,
-            #     min_samples_split=min_samples_split
-            # ))
-            # ('clf', XGBClassifier(
-            #     n_estimators=200,
-            #     max_depth=max_depth,
-            #     learning_rate=learning_rate,
-            #     gamma=gamma
-            # ))
+            ('clf', clf)
         ])
-
-        # pipeline = get_pipeline('svc_linear')
 
         ss = ShuffleSplit(n_splits=n_splits, test_size=0.2)
         cv_splits = cv_split_generator(X=X, y=y, splitter=ss)
@@ -140,22 +142,92 @@ def pso_parameter_tuning(clf, X, y, lb, ub, swarmsize, maxiter, n_splits=3,
         print x, np.mean(ll)
         return np.mean(ll)
 
-    g, f = pso(
-        minimise,
-        lb,
-        ub,
-        swarmsize=swarmsize,
-        maxiter=maxiter,
-        debug=True,
-        args=args
-    )
+    g, f = pso(minimise, lb, ub, swarmsize=swarmsize, maxiter=maxiter,
+               debug=True, args=('clf', clf))
     return g, f
 
 
-# ******************************************************************************
+classifiers = {
+    'knn': KNeighborsClassifier(
+        n_neighbors=6,
+        algorithm='ball_tree',
+        weights='distance',
+        metric='chebyshev'
+    ),
+    'knn_default': KNeighborsClassifier(),
+    'svc_rbf': SVC(
+        kernel='rbf',
+        C=50,
+        gamma=0.01,
+        tol=1e-3
+    ),
+    'svc_rbf_default': SVC(kernel='rbf'),
+    'svc_linear': LinearSVC(
+        C=1e3,
+        loss='squared_hinge',
+        penalty='l2',
+        tol=1e-3
+    ),
+    'svc_linear_default': LinearSVC(),
+    'nusvc': NuSVC(),
+    'rf': RandomForestClassifier(
+        criterion='gini',
+        n_estimators=200,
+        max_depth=4,
+        min_samples_leaf=3,
+        min_samples_split=3
+    ),
+    'rf_default': RandomForestClassifier(),
+    'adaboost': AdaBoostClassifier(),
+    'et': ExtraTreesClassifier(
+        criterion='entropy',
+        max_depth=25,
+        min_samples_leaf=5,
+        min_samples_split=5
+    ),
+    'et_default': ExtraTreesClassifier(),
+    'gbc': GradientBoostingClassifier(),
+    'lr_lbfgs': LogisticRegression(
+        C=2.02739770e+04,  # particle swarm optimised
+        tol=6.65926091e-04,
+        solver='lbfgs'
+    ),
+    'lr_lbfgs_default': LogisticRegression(solver='lbfgs'),
+    'pa': PassiveAggressiveClassifier(
+        C=0.01,
+        fit_intercept=True,
+        loss='hinge'
+    ),
+    'pa_default': PassiveAggressiveClassifier(),
+    'gnb': GaussianNB(),
+    'lda': LinearDiscriminantAnalysis(),
+    'qda': QuadraticDiscriminantAnalysis(),
+    'xgb_defualt': XGBClassifier(),
+    'xgb': XGBClassifier(
+        max_depth=6,
+        learning_rate=0.01,
+        n_estimators=100,
+        silent=True,
+        objective='binary:logistic',
+        nthread=-1,
+        gamma=0,
+        min_child_weight=1,
+        max_delta_step=0,
+        subsample=1,
+        colsample_bytree=1,
+        colsample_bylevel=1,
+        reg_alpha=0,
+        reg_lambda=1,
+        scale_pos_weight=1,
+        base_score=0.5,
+        seed=0,
+        missing=None
+    )
+}
+
+
 if __name__ == '__main__':
     path = '/home/rokkuran/workspace/stegasawus'
-    # path_train = '{}/data/features/train.csv'.format(path)
     path_train = '{}/data/features/train_lenna_identity.csv'.format(path)
 
     train = pd.read_csv(path_train)
@@ -173,88 +245,6 @@ if __name__ == '__main__':
     y_train_binary = le_target.transform(train[target])
 
     train = train.drop([target, 'image', 'filename'], axis=1)
-    # train = train.drop([target, 'image'], axis=1)
-
-    # **************************************************************************
-    classifiers = {
-        'knn': KNeighborsClassifier(
-            n_neighbors=6,
-            algorithm='ball_tree',
-            weights='distance',
-            metric='chebyshev'
-        ),
-        'knn_default': KNeighborsClassifier(),
-        'svc_rbf': SVC(
-            kernel='rbf',
-            C=50,
-            gamma=0.01,
-            tol=1e-3
-        ),
-        'svc_rbf_default': SVC(kernel='rbf'),
-        'svc_linear': LinearSVC(
-            C=1e3,
-            loss='squared_hinge',
-            penalty='l2',
-            tol=1e-3
-        ),
-        'svc_linear_default': LinearSVC(),
-        'nusvc': NuSVC(),
-        'rf': RandomForestClassifier(
-            criterion='gini',
-            n_estimators=200,
-            max_depth=4,
-            min_samples_leaf=3,
-            min_samples_split=3
-        ),
-        'rf_default': RandomForestClassifier(),
-        'adaboost': AdaBoostClassifier(),
-        'et': ExtraTreesClassifier(
-            criterion='entropy',
-            max_depth=25,
-            min_samples_leaf=5,
-            min_samples_split=5
-        ),
-        'et_default': ExtraTreesClassifier(),
-        'gbc': GradientBoostingClassifier(),
-        'lr_lbfgs': LogisticRegression(
-            # C=1000,
-            # tol=1e-3,
-            C=2.02739770e+04,  # particle swarm optimised
-            tol=6.65926091e-04,
-            solver='lbfgs'
-        ),
-        'lr_lbfgs_default': LogisticRegression(solver='lbfgs'),
-        'pa': PassiveAggressiveClassifier(
-            C=0.01,
-            fit_intercept=True,
-            loss='hinge'
-        ),
-        'pa_default': PassiveAggressiveClassifier(),
-        'gnb': GaussianNB(),
-        'lda': LinearDiscriminantAnalysis(),
-        'qda': QuadraticDiscriminantAnalysis(),
-        'xgb_defualt': XGBClassifier(),
-        'xgb': XGBClassifier(
-            max_depth=6,
-            learning_rate=0.01,
-            n_estimators=100,
-            silent=True,
-            objective='binary:logistic',
-            nthread=-1,
-            gamma=0,
-            min_child_weight=1,
-            max_delta_step=0,
-            subsample=1,
-            colsample_bytree=1,
-            colsample_bylevel=1,
-            reg_alpha=0,
-            reg_lambda=1,
-            scale_pos_weight=1,
-            base_score=0.5,
-            seed=0,
-            missing=None
-        )
-    }
 
     # **************************************************************************
     parameters = yaml.safe_load(
@@ -272,7 +262,7 @@ if __name__ == '__main__':
             X_train=train.as_matrix(),
             y_train=y_train_binary,
             cv=3,
-            parameters=parameters[name],
+            parameters=parameters['grid_search'][name],
             scoring='accuracy'
         )
 
@@ -280,37 +270,23 @@ if __name__ == '__main__':
 
     # **************************************************************************
     # Particle swarm optimisation parameter tuning.
-    def run_pso_parameter_tuning():
-        # C, tol
-        lb = [1e-2, 1e-4]
-        ub = [1e3, 1e-3]
+    def run_pso_parameter_tuning(clf_name):
 
-        # max_depth, min_samples_leaf, min_samples_split
-        # lb = [2, 1, 2]
-        # ub = [20, 15, 10]
-
-        # max_depth, learning_rate, gamma
-        # lb = [3, 0.001, 0]
-        # ub = [10, 50, 50]
+        # TODO: fix issue with string representations of '1e-3' in yaml read
+        lb = [float(v) for v in parameters['pso'][clf_name]['lb']]
+        ub = [float(v) for v in parameters['pso'][clf_name]['ub']]
 
         g, f = pso_parameter_tuning(
-            clf=None,
-            X=train.as_matrix(),
-            y=y_train_binary,
-            lb=lb,
-            ub=ub,
-            swarmsize=100,
-            maxiter=20,
-            n_splits=3
-        )
+            clf=classifiers['lr_lbfgs'], X=train.as_matrix(), y=y_train_binary,
+            lb=lb, ub=ub, swarmsize=100, maxiter=20, n_splits=3)
         print g, f
 
-    run_pso_parameter_tuning()
+    run_pso_parameter_tuning('lr_lbfgs')
+    # run_pso_parameter_tuning('rf')
+    # run_pso_parameter_tuning('xgb')
 
     # **************************************************************************
     def plot_validation_curve():
-        # plot validation curve
-        # name = 'lr_lbfgs'
         name = 'svc_linear'
         pipeline = get_pipeline(name)
 
@@ -358,8 +334,6 @@ if __name__ == '__main__':
 
     # **************************************************************************
     def plot_roc_curve(name):
-        # plot roc curve
-        # name = 'lr_lbfgs'
         pipeline = get_pipeline(name)
 
         ss = ShuffleSplit(n_splits=5, test_size=0.2)
