@@ -1,46 +1,66 @@
-svc_rbf:
-  svc_rbf__C: [1, 50, 100, 250, 600, 650, 750, 800, 900, 1000]
-  svc_rbf__tol: [1e-3, 1e-4]
-  svc_rbf__gamma: [0.01, 0.1, 0.25, 0.5, 0.75]
+pso:
+  # TODO: use and anchor or reference or whatever it is called for repeats
+  lr_lbfgs: # C, tol
+    lb: [1e-2, 1e-4]
+    ub: [1e3, 1e-3]
 
-svc_linear:
-  svc_linear__C: [0.01, 0.1, 1, 10, 100, 1000]
-  svc_linear__tol: [1e-3, 1e-4]
+  svc_linear: # C, tol
+    lb: [1e-2, 1e-4]
+    ub: [1e3, 1e-3]
 
-nusvc:
-  nusvc__nu: [0.01, 0.1, 0.25, 0.5, 0.75, 0.90]
-  nusvc__kernel: [rbf, poly, sigmoid]
-  nusvc__tol: [1e-3, 1e-4]
-  nusvc__gamma: [0.01, 0.1, 0.25, 0.5, 0.75]
+  rf: # max_depth, min_samples_leaf, min_samples_split
+    lb: [2, 1, 2]
+    ub: [20, 15, 10]
 
-knn:
-  knn__n_neighbors: [3, 6, 9]
-  knn__weights: [uniform, distance]
-  knn__algorithm: [ball_tree, kd_tree, brute]
-  knn__metric: [minkowski, euclidean, chebyshev, manhattan]
+  xgb:  # max_depth, learning_rate, gamma
+    lb: [3, 0.001, 0]
+    ub: [10, 50, 50]
 
-bag_knn:
-  bag_knn__base_estimator__n_neighbors: [3, 6, 9]
-  bag_knn__max_samples: [0.1, 0.25, 0.5, 0.75, 0.90]
-  bag_knn__max_features: [0.1, 0.25, 0.5, 0.75, 0.90]
 
-lr_lbfgs:
-  lr_lbfgs__C: [0.01, 0.1, 1, 10, 100, 1000]
-  lr_lbfgs__tol: [1e-3, 1e-4]
+grid_search:
+  svc_rbf:
+    svc_rbf__C: [1, 50, 100, 250, 600, 650, 750, 800, 900, 1000]
+    svc_rbf__tol: [1e-3, 1e-4]
+    svc_rbf__gamma: [0.01, 0.1, 0.25, 0.5, 0.75]
 
-rf:
-  rf__criterion: [gini, entropy]
-  rf__max_depth: [10, 12, 15, 20]
-  rf__min_samples_leaf: [1, 5, 8, 12]
-  rf__min_samples_split: [2, 3, 4, 5]
+  svc_linear:
+    svc_linear__C: [0.01, 0.1, 1, 10, 100, 1000]
+    svc_linear__tol: [1e-3, 1e-4]
 
-et:
-  et__criterion: [gini, entropy]
-  et__max_depth: [6, 10, 18, 20, 25]
-  et__min_samples_leaf: [1, 5, 8, 12]
-  et__min_samples_split: [2, 3, 5, 8, 10]
+  nusvc:
+    nusvc__nu: [0.01, 0.1, 0.25, 0.5, 0.75, 0.90]
+    nusvc__kernel: [rbf, poly, sigmoid]
+    nusvc__tol: [1e-3, 1e-4]
+    nusvc__gamma: [0.01, 0.1, 0.25, 0.5, 0.75]
 
-pa:
-  pa__C: [0.01, 0.1, 1, 10, 100, 1000]
-  pa__fit_intercept: [False, True]
-  pa__loss: [hinge, squared_hinge]
+  knn:
+    knn__n_neighbors: [3, 6, 9]
+    knn__weights: [uniform, distance]
+    knn__algorithm: [ball_tree, kd_tree, brute]
+    knn__metric: [minkowski, euclidean, chebyshev, manhattan]
+
+  bag_knn:
+    bag_knn__base_estimator__n_neighbors: [3, 6, 9]
+    bag_knn__max_samples: [0.1, 0.25, 0.5, 0.75, 0.90]
+    bag_knn__max_features: [0.1, 0.25, 0.5, 0.75, 0.90]
+
+  lr_lbfgs:
+    lr_lbfgs__C: [0.01, 0.1, 1, 10, 100, 1000]
+    lr_lbfgs__tol: [1e-3, 1e-4]
+
+  rf:
+    rf__criterion: [gini, entropy]
+    rf__max_depth: [10, 12, 15, 20]
+    rf__min_samples_leaf: [1, 5, 8, 12]
+    rf__min_samples_split: [2, 3, 4, 5]
+
+  et:
+    et__criterion: [gini, entropy]
+    et__max_depth: [6, 10, 18, 20, 25]
+    et__min_samples_leaf: [1, 5, 8, 12]
+    et__min_samples_split: [2, 3, 5, 8, 10]
+
+  pa:
+    pa__C: [0.01, 0.1, 1, 10, 100, 1000]
+    pa__fit_intercept: [False, True]
+    pa__loss: [hinge, squared_hinge]
