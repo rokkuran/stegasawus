@@ -45,6 +45,9 @@ def set_lsb(byte, bit):
 
 
 def embed(I, message, seq_method, verbose=False):
+    """
+    Embeds message in LSB of image at locations specified by seq_method.
+    """
     dimensions = I.shape
     S = I.flatten().copy()
     bits = bit_generator(message)
@@ -64,6 +67,9 @@ def embed(I, message, seq_method, verbose=False):
 
 
 def reveal(S, seq_method):
+    """
+    Reveals embedded LSB message at locations specified by seq_method.
+    """
     char = ''
     S = S.flatten()
 
@@ -96,7 +102,7 @@ if __name__ == '__main__':
         return reveal(S, seq_method) == msg
 
     def test_characters(I, seq_method):
-        msg = 'abcdefghijklmnopqrstuvwxys1234567890~`!@#$%^&*()_+-=:<>,.?/|'
+        msg = 'abcdefghijklmnopqrstuvwxys 1234567890~`!@#$%^&*()_+-=:<>,.?/|  '
         flag = check_embed_reveal(I, msg, seq_method)
         assert flag, 'test_characters: %s' % seq_method.__name__
 
