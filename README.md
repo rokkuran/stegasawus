@@ -1,12 +1,13 @@
 # Stegasawus
 Detecting whether steganography is present in an image using machine learning.
-- Generates dataset for training.
+- Least significant bit (LSB) embedding functions using various embedding location sequences.
+- Generates dataset from set cover images.
 - Creates feature vectors from statistical moments of autocorrelation and discrete wavelet decomposition measures.
 - Exploratory plots of images and training datasets.
 - Preliminary model comparisons.
 
 ### Preliminary Results
-Model 5-fold cross validation results on 2000 (256x256) images of cats and dogs with various message sizes embedded. Image messages are converted to strings and hidden in a cover image using the Least Significant Bit algorithm.
+Model 5-fold cross validation results on 2000 (256x256) images of cats and dogs with various message sizes embedded. Image messages are converted to strings and hidden in a cover image using the LSB algorithm.
 
 Image type counts below. Cover is the original image and 64x64 is the image size that is hidden in a cover image.
 
@@ -18,10 +19,9 @@ Image type counts below. Cover is the original image and 64x64 is the image size
 
 
 ### Future Work
-- Run model benchmarks for different LSB embedding generator types.
+- Model benchmarks for different LSB embedding generator types.
 - Look at model performance for different image types (only cats and dogs at the moment).
 - Model persistence for well performing trained models.
-- Write a few non-repeating integer sequence generators for use in LSB embedding.
-- Write own LSB embedding algorithm.
-- Investigate ensemble of models.
-- Improve feature set.
+- Improve LSB embedding location sequences.
+- Extend/improve features.
+- Look at jpg images and embedding in discrete cosine coefficients.
