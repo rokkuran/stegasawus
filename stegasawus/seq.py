@@ -71,3 +71,21 @@ def _gen_rand_darts(seed, n):
 
 def rand_darts(seed):
     return partial(_gen_rand_darts, seed=seed)
+
+
+def _gen_shuffle_iter(seed, n):
+    np.random.seed(seed)
+    i = 0
+    x = range(n)
+    np.random.shuffle(x)
+    while i < n:
+            yield x[i]
+            i += 1
+
+
+def shuffle_iter(seed):
+    return partial(_gen_shuffle_iter, seed=seed)
+
+
+if __name__ == '__main__':
+    pass
