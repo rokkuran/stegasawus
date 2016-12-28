@@ -101,13 +101,13 @@ def binary_size(s):
     return (len(s) + 14) * 7
 
 
-def best_max_skip(I, msg, verbose=False):
+def best_max_jump(I, msg, verbose=False):
     msg_binary_size = binary_size(msg)
-    max_skip = int(len(I.flatten()) / float(msg_binary_size))
+    max_jump = int(len(I.flatten()) / float(msg_binary_size))
     if verbose:
-        args = len(I.flatten()), msg_binary_size, max_skip
-        print 'img_size=%d; msg_binary_size=%d; best_max_skip=%d' % args
-    return max_skip
+        args = len(I.flatten()), msg_binary_size, max_jump
+        print 'img_size=%d; msg_binary_size=%d; best_max_jump=%d' % args
+    return max_jump
 
 
 def _has_capacity(I, msg):
@@ -133,22 +133,26 @@ def embed(I, message, seq_method, verbose=False):
     S = I.flatten().copy()
     bits = bit_generator(message)
 
-    _check_capacity(I, message)  # raises error if over capacity
+    if not _has_capacity(I, message):
+        args = (len(I.flatten()), binary_size(message))
+        ps = 'img_size=%d; msg_binary_size=%d' % args
+        error = 'message length too long to embed: ' + ps
+        print error
+    else:
+        pixel_count = 0
+        for i in seq_method(n=len(S)):
+            bit = next(bits, None)
+            if bit is not None:
+                S[i] = set_lsb(S[i], bit)
+                pixel_count += 1
+                if verbose:
+                    print '%d pixel modified' % i
+            else:
+                break
 
-    pixel_count = 0
-    for i in seq_method(n=len(S)):
-        bit = next(bits, None)
-        if bit is not None:
-            S[i] = set_lsb(S[i], bit)
-            pixel_count += 1
-            if verbose:
-                print '%d pixel modified' % i
-        else:
-            break
-
-    if verbose:
-        print 'Pixels modified: %.2f' % (pixel_count / 3.)
-    return S.reshape(dimensions)
+        if verbose:
+            print 'Pixels modified: %.2f' % (pixel_count / 3.)
+        return S.reshape(dimensions)
 
 
 if __name__ == '__main__':
@@ -168,14 +172,13 @@ if __name__ == '__main__':
     test_characters(I, seq.all_the_kings_men)
     test_characters(I, seq.skipy(y=3))
     test_characters(I, seq.skipy(y=5))
-    test_characters(I, seq.skip_rand(seed=0, max_skip=10))
-    test_characters(I, seq.skip_rand(seed=77, max_skip=25))
+    test_characters(I, seq.rand_jump(seed=77, max_jump=25))
+    test_characters(I, seq.rand_jump_circle(seed=77, max_jump=25))
+    test_characters(I, seq.rand_darts(seed=0))
 
     msg = 'abcdefghijklmnopqrstuvwxys 1234567890~`!@#$%^&*()_+-=:<>,.?/|  '
-    max_skip = best_max_skip(I, msg)
-    test_characters(I, seq.skip_rand(seed=77, max_skip=max_skip))
-
-    test_characters(I, seq.skip_rand_restart(seed=77, max_skip=50))
+    max_jump = best_max_jump(I, msg)
+    test_characters(I, seq.rand_jump(seed=77, max_jump=max_jump))
 
     # msg = 'abcdefghijklmnopqrstuvwxys 1234567890~`!@#$%^&*()_+-=:<>,.?/|  '
     # seq_method = seq.all_the_kings_men
