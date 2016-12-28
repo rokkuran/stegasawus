@@ -64,3 +64,8 @@ grid_search:
     pa__C: [0.01, 0.1, 1, 10, 100, 1000]
     pa__fit_intercept: [False, True]
     pa__loss: [hinge, squared_hinge]
+
+  xgb:
+    xgb__learning_rate: [0.01, 0.1, 1, 10, 100]
+    xgb__max_depth: [3, 6, 9, 12]
+    xgb__gamma: [0.1, 1, 10]
