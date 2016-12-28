@@ -1,140 +1,39 @@
+from stegasawus import lsb, seq, dataset
+
 import numpy as np
 import pandas as pd
+import abc
 import pywt
 import base64
 import cStringIO
 from PIL import Image
 
-from stegano import exifHeader
-from stegano import lsbset
-from stegano.lsbset import generators
-
-from scipy import stats
-
 import matplotlib.pyplot as plt
 import seaborn as sns
 import skimage.io as io
 
+from os import path
+
 sns.set_style('whitegrid', {'axes.grid': False})
 
 
-# ******************************************************************************
 def rgb_to_grey(image):
     """
-    Converts RGB image array to greyscale.
-
-    Parameters
-    ----------
-    image : numpy.ndarray
-        RGB image array with dimensions (m, n, 3).
-
-    Returns
-    -------
-    Greyscale image of dimensions (m, n)
-
+    Converts RGB image array (m, n, 3) to greyscale (m, n).
     """
     return np.dot(image, [0.2989, 0.5870, 0.1140])
 
 
-class JointImageAnalyser(object):
-    """
-    Image comparison class for use with original 'cover' image (I) and the
-    steganographic image (S).
+class ImagePlots(object):
+    __metaclass__ = abc.ABCMeta
 
-    Parameters
-    ----------
-    filepath_cover : string filepath
-        Filepath for cover image.
-    filepath_stego : string filepath
-        Filepath for steganographic image.
+    @abc.abstractproperty
+    def I(self):
+        raise NotImplementedError()
 
-    Attributes
-    ----------
-    I : numpy.ndarray
-        RGB array for cover image.
-    S : numpy.ndarray
-        RGB array for steganographic image.
-    diff : numpy.ndarray
-        Difference between cover and steganographic image RGB arrays: (I - S).
-
-    """
-    def __init__(self, filepath_cover, filepath_stego):
-        super(JointImageAnalyser, self).__init__()
-        self._filepath_cover = filepath_cover
-        self._filepath_stego = filepath_stego
-
-        # check if filetypes match
-        cover_ext = filepath_cover.split('.')[-1]
-        stego_ext = filepath_stego.split('.')[-1]
-        if cover_ext == stego_ext:
-            self._file_type = filepath_cover.split('.')[-1]
-        else:
-            raise Exception('Error: file types are not the same.')
-
-        self.I = io.imread(filepath_cover)
-        self.S = io.imread(filepath_stego)
-
-    @property
-    def diff(self):
-        return self.I - self.S
-
-    def print_details(self):
-        print 'cover_image: %s' % self._filepath_cover
-        print 'stego_image: %s' % self._filepath_stego
-        a = np.sum(abs(self.diff))
-        print 'sum of absolute image difference = %s' % a
-
-    def reveal(self, generator):
-        """
-        Reveal hidden message in steganographic image using the generator
-        specified.
-
-        Parameters
-        ----------
-        generator : function
-            Embedding location generator function from custom functon or
-            stegano.lsbset.generators. Message will not be revealed unless the
-            correct generator is used.
-
-        Returns
-        -------
-        Secret message :o
-
-        """
-        if self._file_type == 'jpg':
-            return exifHeader.reveal(self._filepath_stego)
-        elif self._file_type == 'png':
-            return lsbset.reveal(self._filepath_stego, generator=generator)
-        else:
-            raise Exception('reveal: invalid file type.')
-
-    def reveal_image(self, generator, show=False):
-        """
-        If embedded message is an image, reveal hidden image.
-
-        Parameters
-        ----------
-        generator : function
-            Embedding location generator function from custom functon or
-            stegano.lsbset.generators. Message will not be revealed unless the
-            correct generator is used.
-        show : bool
-            Whether to show image plot.
-
-        Returns
-        -------
-        RGB image array. Optionally, shows image plot.
-
-        """
-        s = base64.b64decode(self.reveal(generator))
-        s = cStringIO.StringIO(s)
-        I = np.array(Image.open(s))
-
-        if show:
-            io.imshow(I)
-            plt.show()
-
-        return I
+    @abc.abstractproperty
+    def S(self):
+        raise NotImplementedError()
 
     def plot_images(self):
         """
@@ -158,124 +57,36 @@ class JointImageAnalyser(object):
                 axarr[i, j].set_yticklabels([])
         plt.show()
 
-    def plot_difference(self, absolute=False):
+    def plot_rgb_difference(self):
+        """
+        Plots difference between cover and steganographic images for each RGB
+        colour channel.
+        """
+        f, axarr = plt.subplots(1, 3, figsize=(12, 4))
+        for j, colour in enumerate(['Red', 'Green', 'Blue']):
+            diff = self.I[:, :, j] - self.S[:, :, j]
+            axarr[j].imshow(diff, cmap='{}s_r'.format(colour))
+            axarr[j].set_title('{}'.format(colour))
+            axarr[j].set_xticklabels([])
+            axarr[j].set_yticklabels([])
+        plt.show()
+
+    def plot_difference(self):
         """
         Plot difference between cover and steganographic image.
         """
-        io.imshow(self.diff if not absolute else abs(self.diff))
+        io.imshow(self.I - self.S)
         plt.grid(False)
         plt.show()
-
-
-def generate_feature_histograms(filepath_train, path_output, bins=50):
-    """
-    Generate batch of comparison histograms of cover and steganographic image
-    features.
-
-    Parameters
-    ----------
-    filepath_train : string
-        Filepath for training csv file with image features.
-    bins : int, default : 50
-        Number of bins for histograms.
-
-    Returns
-    -------
-    Set of comparitive histograms.
-
-    """
-    train = pd.read_csv(filepath_train)
-
-    exclusions = ['label', 'image', 'filename']
-    cols = [x for x in train.columns if x not in exclusions]
-
-    for feature in cols:
-        label = 'cover'
-        I = train[train.label == label][feature]
-        plt.hist(I, bins=bins, color='b', alpha=0.3, edgecolor='None',
-                 label=label)
-
-        label = 'stego'
-        S = train[train.label == 'stego'][feature]
-        plt.hist(S, bins=bins, color='r', alpha=0.3, edgecolor='None'
-                 label=label)
-
-        plt.legend(loc='upper right', frameon=False)
-        plt.title(feature)
-
-        plt.savefig('{}/{}_bins{}.png'.format(path_output, feature, bins))
-        print feature
-        plt.close()
-
-
-def generate_feature_distplots(filepath_train, path_output):
-    """"""
-    train = pd.read_csv(filepath_train)
-
-    exclusions = ['label', 'image', 'filename']
-    cols = [x for x in train.columns if x not in exclusions]
-
-    for feature in cols:
-        label = 'cover'
-        sns.distplot(train[train.label == label][feature], label=label)
-
-        label = 'stego'
-        sns.distplot(train[train.label == label][feature], label=label)
-
-        plt.legend(loc='upper right', frameon=False)
-        plt.title(feature)
-        plt.savefig('{}/distplot_{}.png'.format(path_output, feature))
-        print feature
-        plt.close()
-
-
-def generate_feature_kde(filepath_train, path_output):
-    """"""
-    train = pd.read_csv(filepath_train)
-
-    exclusions = ['label', 'image', 'filename']
-    cols = [x for x in train.columns if x not in exclusions]
-
-    for feature in cols:
-        I = train[train.label == 'cover'][feature]
-        S = train[train.label == 'stego'][feature]
-
-        I_kde = stats.gaussian_kde(I)
-        S_kde = stats.gaussian_kde(S)
-
-        x = np.hstack((I, S))
-        xs = np.linspace(min(x), max(x), 250)
-
-        plt.plot(xs, I_kde(xs), color='b', lw=1.5, alpha=0.3, label='cover')
-        plt.plot(xs, S_kde(xs), color='r', lw=1.5, alpha=0.3, label='stego')
-
-        plt.legend(loc='upper right', frameon=False)
-        plt.title('KDE (Gaussian): {}'.format(feature))
-        plt.savefig('{}/kde_{}.png'.format(path_output, feature))
-        print feature
-        plt.close()
-
-
-def plot_joint_dist_hex(x, y):
-    sns.set(style="ticks")
-    sns.jointplot(x, y, kind="hex", stat_func=stats.kendalltau, color="#4CB391")
-    plt.show()
 
 
 def plot_wavelet_decomposition(image, level=3):
     """
     Plot of 2D wavelet decompositions for given number of levels.
 
-    Parameters
-    ----------
-    image : numpy.ndarray
-        Single channel image with dimensions (m, n).
-    level : int, default : 3
-        Decomposition level.
-
-    Returns
-    -------
-    Shows plot of 2D wavelet decomposition.
+    image needs to be either a colour channel or greyscale image:
+        rgb: self.I[:, :, n], where n = {0, 1, 2}
+        greyscale: use rgb_to_grey(self.I)
 
     """
     coeffs = pywt.wavedec2(image, wavelet='haar', level=level)
@@ -290,12 +101,76 @@ def plot_wavelet_decomposition(image, level=3):
             plot_image = np.concatenate((plot_image, cVcD), axis=0)
 
     plt.grid(False)
-    # io.imshow(abs(plot_image), cmap='gray')
     io.imshow(abs(plot_image), cmap='gray_r')
-    # io.imshow(plot_image)
     plt.show()
+
+
+class JointImageAnalyser(ImagePlots):
+    """"""
+    def __init__(self, cover, stego):
+        super(JointImageAnalyser, self).__init__()
+        self._I = self._set_image(cover)
+        self._S = self._set_image(stego)
+
+    def _check_type(self, v, types):
+        return any([isinstance(v, t) for t in types])
+
+    def _set_image(self, image):
+        if self._check_type(image, [np.ndarray, list]):
+            return image
+        elif self._check_type(image, [str]):
+            return io.imread(image)
+        else:
+            raise Exception('Input image type not array like or filepath.')
+
+    @property
+    def I(self):
+        return self._I
+
+    @property
+    def S(self):
+        return self._S
+
+    @property
+    def diff(self):
+        return self.I - self.S
+
+    def print_details(self):
+        # TODO: add some more details...
+        a = np.sum(abs(self.diff))
+        print 'sum of absolute image difference = %s' % a
+
+    def reveal(self, seq_method):
+        return lsb.reveal(self.S, seq_method)
+
+    def reveal_image(self, seq_method, show=False):
+        s = base64.b64decode(self.reveal(seq_method))
+        s = cStringIO.StringIO(s)
+        I = np.array(Image.open(s))
+
+        if show:
+            io.imshow(I)
+            plt.show()
+
+        return I
 
 
 # ******************************************************************************
 if __name__ == '__main__':
-    pass
+    cdir = '/home/rokkuran/workspace/stegasawus/'
+
+    fp = path.join(cdir, 'data/messages/Lenna_64x64.png')
+    msg = dataset.image_to_string(fp)
+
+    path_images = '{}images/png/cover_test/'.format(cdir)
+    path_output = '{}images/png/lsb_test/'.format(cdir)
+
+    seq_method = seq.rand_darts(seed=77)
+    g = dataset.DatasetGenerator(path_images, path_output, seq_method)
+    g.batch_hide_message(msg)
+
+    filename = 'cat.117.png'
+    a = JointImageAnalyser(path_images + filename, path_output + filename)
+    H = a.reveal_image(seq_method)
+    io.imshow(H)
+    plt.show()
