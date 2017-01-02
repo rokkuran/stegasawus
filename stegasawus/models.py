@@ -25,12 +25,12 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.naive_bayes import GaussianNB
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 
-from keras.models import Sequential
-from keras.layers import Dense, Dropout, Activation, ActivityRegularization
-from keras.regularizers import WeightRegularizer
-from keras.wrappers.scikit_learn import KerasClassifier
+# from keras.models import Sequential
+# from keras.layers import Dense, Dropout, Activation, ActivityRegularization
+# from keras.regularizers import WeightRegularizer
+# from keras.wrappers.scikit_learn import KerasClassifier
 
-from xgboost import XGBClassifier
+# from xgboost import XGBClassifier
 
 
 input_dim = 125
@@ -115,33 +115,38 @@ class ModelComparer(object):
         return df_mean if mean else df
 
 
-def create_mlp():
-    model = Sequential()
-    model.add(Dense(64, 'uniform', 'sigmoid', input_dim=input_dim))
-    # model.add(ActivityRegularization(l1=0, l2=0.001))
-    model.add(Dropout(0.2))
-    model.add(Dense(output_dim=64, activation='tanh'))
-    model.add(Dropout(0.1))
-    model.add(Dense(1, activation='sigmoid'))
-
-    model.compile(
-        loss='binary_crossentropy',
-        optimizer='adam',
-        metrics=['accuracy']
-    )
-    return model
+# def create_mlp():
+#     model = Sequential()
+#     model.add(Dense(64, 'uniform', 'sigmoid', input_dim=input_dim))
+#     # model.add(ActivityRegularization(l1=0, l2=0.001))
+#     model.add(Dropout(0.2))
+#     model.add(Dense(output_dim=64, activation='tanh'))
+#     model.add(Dropout(0.1))
+#     model.add(Dense(1, activation='sigmoid'))
+#
+#     model.compile(
+#         loss='binary_crossentropy',
+#         optimizer='adam',
+#         metrics=['accuracy']
+#     )
+#     return model
 
 
 classifiers = {
-    'keras_mlp': KerasClassifier(
-        build_fn=create_mlp,
-        nb_epoch=150,
-        batch_size=64
-    ),
+    # 'keras_mlp': KerasClassifier(
+    #     build_fn=create_mlp,
+    #     nb_epoch=150,
+    #     batch_size=64
+    # ),
     'svc_linear': LinearSVC(),
     'lr_lbfgs': LogisticRegression(
         C=2.02739770e+04,  # particle swarm optimised
         tol=6.65926091e-04,
+        solver='lbfgs'
+    ),
+    'lr_lbfgs_pso': LogisticRegression(
+        C=5.76005997e+02,  # particle swarm optimised
+        tol=7.05315544e-04,
         solver='lbfgs'
     ),
     'lr_lbfgs_default': LogisticRegression(solver='lbfgs'),
@@ -160,14 +165,14 @@ classifiers = {
         min_samples_leaf=3,
         min_samples_split=3
     ),
-    'xgb': XGBClassifier(
-        n_estimators=200,
-        max_depth=6,
-        learning_rate=0.1,
-        gamma=1,
-        objective='binary:logistic',
-        nthread=-1
-    ),
+    # 'xgb': XGBClassifier(
+    #     n_estimators=200,
+    #     max_depth=6,
+    #     learning_rate=0.1,
+    #     gamma=1,
+    #     objective='binary:logistic',
+    #     nthread=-1
+    # ),
 }
 
 pipeline = Pipeline([
@@ -177,8 +182,10 @@ pipeline = Pipeline([
 
 
 if __name__ == '__main__':
-    path = '/home/rokkuran/workspace/stegasawus'
-    path_train = '{}/data/features/train_lenna.csv'.format(path)
+    # path = '/home/rokkuran/workspace/stegasawus'
+    path = 'c:/workspace/stegasawus'
+    # path_train = '{}/data/features/train_shuffle_iter.csv'.format(path)
+    path_train = '{}/data/features/train.csv'.format(path)
 
     train = pd.read_csv(path_train)
 
@@ -186,10 +193,11 @@ if __name__ == '__main__':
     le_target = LabelEncoder().fit(train[target])
     y = le_target.transform(train[target])
 
-    train = train.drop([target, 'image'], axis=1)
+    drop_cols = [target, 'filename', 'seq_method', 'img_msg_dim']
+    train = train.drop(drop_cols, axis=1)
     X = train.as_matrix()
 
-    splitter = ShuffleSplit(n_splits=3, test_size=0.2, random_state=0)
+    splitter = ShuffleSplit(n_splits=5, test_size=0.2, random_state=0)
     mc = ModelComparer(X, y, pipeline, splitter, classifiers)
     mc.model_comparison()
     print '\n', mc.scores()

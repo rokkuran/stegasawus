@@ -2,7 +2,7 @@ pso:
   # TODO: use and anchor or reference or whatever it is called for repeats
   lr_lbfgs: # C, tol
     lb: [1e-2, 1e-4]
-    ub: [1e3, 1e-3]
+    ub: [1e5, 1e-3]
 
   svc_linear: # C, tol
     lb: [1e-2, 1e-4]

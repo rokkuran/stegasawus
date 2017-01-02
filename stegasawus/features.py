@@ -266,34 +266,10 @@ def rgb_wavelet_features(I, tol=1):
     return features
 
 
-def create_feature_dataset(path_images, class_label, path_output,
+def create_feature_dataset(path_images, metalabels, path_output,
                            f_types=['autocorrelation', 'wavelet'],
                            image_limit=None):
-
-    """
-    Create feature vectors from images in directory and save as csv output.
-
-    Parameters
-    ----------
-    path_images : directory path string
-        Directory with images for processing.
-    class_label : string
-        Class label used in label column of output.
-    path_output : directory path string
-        Output directory for csv file.
-    f_types : array_like, default : ['autocorrelation', 'wavelet']
-        Specify the feature types to include as list of strings:
-        {'autocorrelation', 'wavelet'}
-        Default: ['autocorrelation', 'wavelet']
-    image_limit : int, default : None
-        Number of images in directory to process.
-
-    Returns
-    -------
-    csv output file as specified in path_output.
-
-    """
-
+    """"""
     print 'creating image feature dataset...'
 
     dataset = list()
@@ -312,7 +288,8 @@ def create_feature_dataset(path_images, class_label, path_output,
         if i == 0:
             feature_names = features.keys()
 
-        row = [filename, class_label]
+        labels = [metalabels[x] for x in sorted(metalabels.keys())]
+        row = [filename] + labels
         for feature in feature_names:
             row.append(features[feature])
         dataset.append(row)
@@ -324,12 +301,13 @@ def create_feature_dataset(path_images, class_label, path_output,
             if i > image_limit:
                 break
 
-    df = pd.DataFrame(dataset, columns=['image', 'label'] + feature_names)
-    df.to_csv(path_output, index=False)
+    print '{} images processed'.format(i)
 
+    cols = ['filename'] + sorted(metalabels.keys()) + feature_names
+    df = pd.DataFrame(dataset, columns=cols)
+    df.to_csv(path_output, index=False)
     print 'image feature dataset created.'
 
 
-# ******************************************************************************
 if __name__ == '__main__':
     pass

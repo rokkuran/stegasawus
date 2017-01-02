@@ -32,14 +32,14 @@ def string_to_image(image_string):
 def crop_image(image, dim, centre=True):
     m, n = dim
     if centre:
-        x, y, _ = image.shape
+        x, y, _ = image[0].shape
         x0 = int((x - m) / 2) - 1
         y0 = int((y - n) / 2) - 1
         xm = int(m + x0)
         yn = int(n + y0)
-        return image[x0:xm, y0:yn]
+        return image[0][x0:xm, y0:yn]
     else:
-        return image[0:m, 0:n]
+        return image[0][0:m, 0:n]
 
 
 def crop_images(path_images, path_output, dimensions, centre=True):
@@ -69,14 +69,17 @@ def batch_jpg_to_png(path_input, path_output):
     """
     print 'coverting images...'
     for i, filename in enumerate(os.listdir(path_input)):
-        input_jpg = '{}{}'.format(path_input, filename)
+        _, ext = os.path.splitext(filename)
+        if ext.lower() == '.jpg':
+            input_jpg = '{}{}'.format(path_input, filename)
 
-        fname = filename.replace('.jpg', '.png')
-        output_png = '{}{}'.format(path_output, fname)
+            fname = filename.replace(ext, '.png')
+            output_png = '{}{}'.format(path_output, fname)
 
-        I = io.imread(input_jpg)
-        io.imsave(output_png, I)
-        print '{}: {}'.format(i, filename)
+            I = io.imread(input_jpg)
+            io.imsave(output_png, I)
+            print '{}: {}'.format(i, filename)
+
     print 'image conversion complete.'
 
 
@@ -122,13 +125,52 @@ def create_cropped_set(path_image, path_output, dims):
 
 if __name__ == '__main__':
     cdir = '/home/rokkuran/workspace/stegasawus/'
-    fp = path.join(cdir, 'data/messages/Lenna_64x64.png')
+    # fp = path.join(cdir, 'data/messages/Lenna_64x64.png')
+    #
+    # msg = image_to_string(fp)
+    #
+    # path_images = '{}images/png/cover_test/'.format(cdir)
+    # path_output = '{}images/png/lsb_test/'.format(cdir)
+    #
+    # seq_method = seq.rand_darts(seed=77)
+    # g = DatasetGenerator(path_images, path_output, seq_method)
+    # g.batch_hide_message(msg))
 
-    msg = image_to_string(fp)
+    def factor_resize(image, alpha):
+        return image.resize([int(alpha * d) for d in image.size])
 
-    path_images = '{}images/png/cover_test/'.format(cdir)
-    path_output = '{}images/png/lsb_test/'.format(cdir)
+    def batch_resize(path_images, path_output, alpha=None):
+        print 'resizing images...'
+        for i, filename in enumerate(listdir(path_images), start=1):
+            I = Image.open(path_images + filename)
+            I = factor_resize(I, 0.1)
+            I.save(path_output + filename)
+            print '%d: %s | alpha=%.2f; dim=%s' % (i, filename, alpha, I.size)
+        print 'resizing complete.'
 
-    seq_method = seq.rand_darts(seed=77)
-    g = DatasetGenerator(path_images, path_output, seq_method)
-    g.batch_hide_message(msg)
+    def win_create_dataset():
+        cdir = 'c:/workspace/stegasawus'
+
+        # path_images = cdir + '/images/jpg/original/'
+        # path_output = cdir + '/images/jpg/crop/'
+        # # dimensions = (400, 600)
+        # # crop_images(path_images, path_output, dimensions, centre=True)
+        # batch_resize(path_images, path_output, alpha=0.1)
+        #
+        # path_input = cdir + '/images/jpg/crop/'
+        # path_output = cdir + '/images/png/cover/'
+        # batch_jpg_to_png(path_input, path_output)
+
+
+        fp = path.join(cdir, 'data/messages/Lenna_128x128.png')
+        msg = image_to_string(fp)
+
+        path_images = cdir + '/images/png/cover/'
+        # path_output = cdir + '/images/png/shuffle_iter/'
+        path_output = cdir + '/images/png/all_the_kings_men/'
+        # seq_method = seq.shuffle_iter(seed=77)
+        seq_method = seq.all_the_kings_men
+        g = DatasetGenerator(path_images, path_output, seq_method)
+        g.batch_hide_message(msg)
+
+    win_create_dataset()

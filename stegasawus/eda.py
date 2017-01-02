@@ -35,14 +35,18 @@ class ImagePlots(object):
     def S(self):
         raise NotImplementedError()
 
+    def _show(self, a):
+        io.imshow(a)
+        plt.grid(False)
+        plt.show()
+
     def plot_images(self):
         """
         Plot cover and steganographic RGB images side by side.
         """
-        io.imshow(np.concatenate((self.I, self.S), axis=1))
         plt.title('Left: original cover image. Right: steganographic image.')
-        plt.grid(False)
-        plt.show()
+        # io.imshow(np.concatenate((self.I, self.S), axis=1))
+        self._show(np.concatenate((self.I, self.S), axis=1))
 
     def plot_rgb_components(self):
         """
@@ -75,10 +79,20 @@ class ImagePlots(object):
         """
         Plot difference between cover and steganographic image.
         """
-        io.imshow(self.I - self.S)
-        plt.grid(False)
-        plt.show()
+        self._show(self.I - self.S)
 
+    def plot_image_diff(self):
+        z = np.concatenate((self.I, self.S, self.I - self.S), axis=1)
+        self._show(z)
+
+    def plot_image_set(self):
+        f, axarr = plt.subplots(1, 3, figsize=(12, 4))
+        images = [('cover', self.I), ('stego', self.S),
+                  ('diff', self.I - self.S)]
+        for i, (k, v) in enumerate(images):
+            axarr[i].imshow(v)
+            axarr[i].set_title(k)
+        plt.show()
 
 def plot_wavelet_decomposition(image, level=3):
     """
@@ -157,20 +171,37 @@ class JointImageAnalyser(ImagePlots):
 
 # ******************************************************************************
 if __name__ == '__main__':
-    cdir = '/home/rokkuran/workspace/stegasawus/'
+    # cdir = '/home/rokkuran/workspace/stegasawus/'
+    #
+    # fp = path.join(cdir, 'data/messages/Lenna_64x64.png')
+    # msg = dataset.image_to_string(fp)
+    #
+    # path_images = '{}images/png/cover_test/'.format(cdir)
+    # path_output = '{}images/png/lsb_test/'.format(cdir)
 
-    fp = path.join(cdir, 'data/messages/Lenna_64x64.png')
-    msg = dataset.image_to_string(fp)
+    # seq_method = seq.rand_darts(seed=77)
+    # g = dataset.DatasetGenerator(path_images, path_output, seq_method)
+    # g.batch_hide_message(msg)
+    #
+    # filename = 'cat.117.png'
+    # a = JointImageAnalyser(path_images + filename, path_output + filename)
+    # H = a.reveal_image(seq_method)
+    # io.imshow(H)
+    # plt.show()
 
-    path_images = '{}images/png/cover_test/'.format(cdir)
-    path_output = '{}images/png/lsb_test/'.format(cdir)
+    def win_test():
+        cdir = 'c:/workspace/stegasawus'
+        path_images = cdir + '/images/png/cover/'
+        # path_output = cdir + '/images/png/shuffle_iter/'
+        path_output = cdir + '/images/png/all_the_kings_men/'
 
-    seq_method = seq.rand_darts(seed=77)
-    g = dataset.DatasetGenerator(path_images, path_output, seq_method)
-    g.batch_hide_message(msg)
+        # filename = 'DSC08790.png'
+        # filename = 'DSC08791.png'
+        filename = 'DSC09510.png'
+        # seq_method = seq.shuffle_iter(seed=77)
+        seq_method = seq.all_the_kings_men
+        a = JointImageAnalyser(path_images + filename, path_output + filename)
+        H = a.reveal_image(seq_method)
+        return a, H
 
-    filename = 'cat.117.png'
-    a = JointImageAnalyser(path_images + filename, path_output + filename)
-    H = a.reveal_image(seq_method)
-    io.imshow(H)
-    plt.show()
+    a, H = win_test()

@@ -180,8 +180,8 @@ if __name__ == '__main__':
     max_jump = best_max_jump(I, msg)
     test_characters(I, seq.rand_jump(seed=77, max_jump=max_jump))
 
-    # msg = 'abcdefghijklmnopqrstuvwxys 1234567890~`!@#$%^&*()_+-=:<>,.?/|  '
-    # seq_method = seq.all_the_kings_men
-    # S = _zembed(I, msg, seq_method)
-    # hmsg = _zreveal(S, seq_method)
-    # print hmsg
+    msg = 'abcdefghijklmnopqrstuvwxys 1234567890~`!@#$%^&*()_+-=:<>,.?/|  '
+    seq_method = seq.all_the_kings_men
+    S = embed(I, msg, seq_method)
+    hmsg = reveal(S, seq_method)
+    print hmsg
