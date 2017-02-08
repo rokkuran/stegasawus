@@ -8,39 +8,9 @@ import matplotlib.pyplot as plt
 from skimage import io
 
 
-# ******************************************************************************
-def rgb_to_grey(image):
-    """
-    Converts RGB image to greyscale.
-
-    Parameters
-    ----------
-    image : array
-        RGB array
-
-    Returns
-    -------
-    numpy.ndarray
-        Greyscale image array from RGB
-
-    """
-    return np.dot(image, [0.2989, 0.5870, 0.1140])
-
-
 def statistical_metrics(x):
     """
     Calculates statistical metrics on input array (mean, std, skew, kurtosis).
-
-    Parameters
-    ----------
-    x : numpy.ndarray
-        Array to compute statics on.
-
-    Returns
-    -------
-    features : dict
-        Dictionary of metrics.
-
     """
 
     metrics = {
@@ -55,41 +25,17 @@ def statistical_metrics(x):
 def prefix_dict_keys(d, prefix):
     """
     Adds prefix to dict keys.
-
-    Parameters
-    ----------
-    d : dict
-        Dictionary to modify.
-    prefix : string
-        Prefix to add to dict key.
-
-    Returns
-    -------
-    Modified dict d.
-
     """
     return {'{}_{}'.format(prefix, k): v for k, v in d.items()}
 
 
-def autocorrelation_features(I, lags=((1, 0), (0, 1), (1, 1))):
+def autocorrelation_features(I, lags=[(1, 0), (0, 1), (1, 1)]):
     """
-    Calculate the autocorrelation statistical features (specified in
-    statistical_metrics function) from a 2D image array for the specified lags.
-
-    Parameters
-    ----------
-    I : numpy.ndarray
-        Array from a greyscale image or an individual colour channel.
-    lags : array_like, default : ((1, 0), (0, 1), (1, 1))
-        Pixel vertical and horizontal coordinate shift lags.
-            e.g. [(1, 0), (0, 1), (1, 1), (1, 2), (2, 1), (2, 2)]
-
-    Returns
-    -------
-    features : dict
-
+    Calculate the autocorrelation statistical features from a 2D image array
+    (greyscale image or an individual colour channel) for the specified pixel
+    vertical and horizontal coordinate shift lags:
+        e.g. [(1, 0), (0, 1), (1, 1), (1, 2), (2, 1), (2, 2)]
     """
-
     m, n = I.shape
 
     features = {}
@@ -108,21 +54,8 @@ def autocorrelation_features(I, lags=((1, 0), (0, 1), (1, 1))):
 
 def rgb_autocorrelation_features(I, lags=((1, 0), (0, 1), (1, 1))):
     """
-    Calculate the autocorrelation statistical features of a RGB image
+    Calculate the autocorrelation statistical features of an RGB image
     array (m, n, 3) for the specified lags.
-
-    Parameters
-    ----------
-    I : array
-        RGB image array (m, n, 3).
-    lags : array_like, default : ((1, 0), (0, 1), (1, 1))
-        Pixel vertical and horizontal coordinate shift lags.
-            e.g. [(1, 0), (0, 1), (1, 1), (1, 2), (2, 1), (2, 2)]
-
-    Returns
-    -------
-    features : dict
-
     """
     features = {}
     m, n, _ = I.shape

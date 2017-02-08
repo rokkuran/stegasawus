@@ -155,7 +155,6 @@ class JointImageAnalyser(ImagePlots):
         return I
 
 
-# ******************************************************************************
 if __name__ == '__main__':
     cdir = '/home/rokkuran/workspace/stegasawus/'
 

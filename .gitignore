@@ -6,7 +6,7 @@ output/log1p_test
 output/k*
 images/
 jpeg-v4/
-archive/
+# archive/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
